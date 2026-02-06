@@ -26,7 +26,7 @@ export interface IStorage {
   getSurgeonByUsername(username: string): Promise<Surgeon | undefined>;
   createSurgeon(surgeon: InsertSurgeon): Promise<Surgeon>;
   getAllSurgeons(): Promise<Surgeon[]>;
-  deleteSurgeon(id: number): Promise<void>;
+  toggleSurgeonActive(id: number, isActive: boolean): Promise<Surgeon>;
 
   getNextPatientId(): Promise<string>;
   getPatient(id: number): Promise<Patient | undefined>;
@@ -39,6 +39,7 @@ export interface IStorage {
   getVisit(id: number): Promise<Visit | undefined>;
   getVisitsByPatient(patientId: number): Promise<Visit[]>;
   createVisit(visit: InsertVisit): Promise<Visit>;
+  getFollowUpsByDate(date: string): Promise<any[]>;
 
   getHscAmsScoresByPatient(patientId: number): Promise<HscAmsScore[]>;
   getHscAmsScoreByVisit(visitId: number): Promise<HscAmsScore | undefined>;
@@ -82,8 +83,13 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(surgeons);
   }
 
-  async deleteSurgeon(id: number): Promise<void> {
-    await db.delete(surgeons).where(eq(surgeons.id, id));
+  async toggleSurgeonActive(id: number, isActive: boolean): Promise<Surgeon> {
+    const [updated] = await db
+      .update(surgeons)
+      .set({ isActive })
+      .where(eq(surgeons.id, id))
+      .returning();
+    return updated;
   }
 
   async getNextPatientId(): Promise<string> {
@@ -161,6 +167,25 @@ export class DatabaseStorage implements IStorage {
   async createVisit(visit: InsertVisit): Promise<Visit> {
     const [created] = await db.insert(visits).values(visit).returning();
     return created;
+  }
+
+  async getFollowUpsByDate(date: string): Promise<any[]> {
+    const results = await db
+      .select({
+        visitId: visits.id,
+        patientId: patients.id,
+        patientIdCode: patients.patientId,
+        childName: patients.childName,
+        dateOfBirth: patients.dateOfBirth,
+        involvement: patients.involvement,
+        contactNumber: patients.contactNumber,
+        nextFollowUpDate: visits.nextFollowUpDate,
+      })
+      .from(visits)
+      .innerJoin(patients, eq(visits.patientId, patients.id))
+      .where(eq(visits.nextFollowUpDate, date))
+      .orderBy(asc(patients.childName));
+    return results;
   }
 
   async getHscAmsScoresByPatient(patientId: number): Promise<HscAmsScore[]> {

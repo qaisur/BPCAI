@@ -97,6 +97,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         username: s.username,
         fullName: s.fullName,
         isAdmin: s.isAdmin,
+        isActive: s.isActive,
         createdAt: s.createdAt,
       })));
     } catch (error: any) {
@@ -121,6 +122,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const valid = await bcrypt.compare(password, surgeon.password);
       if (!valid) {
         return res.status(401).json({ message: "Invalid credentials" });
+      }
+
+      if (!surgeon.isActive) {
+        return res.status(403).json({ message: "Your account has been deactivated. Please contact the administrator." });
       }
 
       req.session.surgeonId = surgeon.id;
@@ -406,7 +411,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   );
 
-  app.delete("/api/admin/surgeons/:id", requireAuth, async (req: Request, res: Response) => {
+  app.patch("/api/admin/surgeons/:id/toggle-active", requireAuth, async (req: Request, res: Response) => {
     try {
       const admin = await storage.getSurgeon(req.session.surgeonId!);
       if (!admin || !admin.isAdmin) {
@@ -419,11 +424,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Surgeon not found" });
       }
       if (target.isAdmin) {
-        return res.status(403).json({ message: "Cannot delete admin account" });
+        return res.status(403).json({ message: "Cannot deactivate admin account" });
       }
 
-      await storage.deleteSurgeon(targetId);
-      res.json({ message: "Surgeon account removed" });
+      const updated = await storage.toggleSurgeonActive(targetId, !target.isActive);
+      res.json({
+        id: updated.id,
+        username: updated.username,
+        fullName: updated.fullName,
+        isAdmin: updated.isAdmin,
+        isActive: updated.isActive,
+        message: updated.isActive ? "Account activated" : "Account deactivated",
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/follow-ups", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { date } = req.query;
+      if (!date || typeof date !== "string") {
+        return res.status(400).json({ message: "Date parameter required (YYYY-MM-DD)" });
+      }
+      const followUps = await storage.getFollowUpsByDate(date);
+      res.json(followUps);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }

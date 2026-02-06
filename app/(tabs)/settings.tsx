@@ -55,35 +55,40 @@ export default function SettingsScreen() {
     },
   });
 
-  const deleteSurgeonMutation = useMutation({
+  const toggleActiveMutation = useMutation({
     mutationFn: async (id: number) => {
-      const res = await apiRequest("DELETE", `/api/admin/surgeons/${id}`);
+      const res = await apiRequest("PATCH", `/api/admin/surgeons/${id}/toggle-active`);
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data: any) => {
       queryClient.refetchQueries({ queryKey: ["/api/admin/surgeons"] });
-      Alert.alert("Success", "Surgeon account removed");
+      Alert.alert("Success", data.message || "Account status updated");
     },
     onError: (error: any) => {
-      Alert.alert("Error", error.message || "Failed to remove account");
+      Alert.alert("Error", error.message || "Failed to update account");
     },
   });
 
-  function handleDeleteSurgeon(id: number, name: string) {
+  function handleToggleActive(id: number, name: string, currentlyActive: boolean) {
+    const action = currentlyActive ? "deactivate" : "activate";
+    const msg = currentlyActive
+      ? `Deactivate ${name}'s account? They will not be able to log in.`
+      : `Reactivate ${name}'s account? They will be able to log in again.`;
+
     if (Platform.OS === "web") {
-      if (confirm(`Remove ${name}'s account? This cannot be undone.`)) {
-        deleteSurgeonMutation.mutate(id);
+      if (confirm(msg)) {
+        toggleActiveMutation.mutate(id);
       }
     } else {
       Alert.alert(
-        "Remove Account",
-        `Remove ${name}'s account? This cannot be undone.`,
+        `${currentlyActive ? "Deactivate" : "Activate"} Account`,
+        msg,
         [
           { text: "Cancel", style: "cancel" },
           {
-            text: "Remove",
-            style: "destructive",
-            onPress: () => deleteSurgeonMutation.mutate(id),
+            text: currentlyActive ? "Deactivate" : "Activate",
+            style: currentlyActive ? "destructive" : "default",
+            onPress: () => toggleActiveMutation.mutate(id),
           },
         ]
       );
@@ -264,12 +269,22 @@ export default function SettingsScreen() {
               keyExtractor={(item) => item.id.toString()}
               contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
               renderItem={({ item }) => (
-                <View style={[styles.surgeonRow, item.isAdmin && styles.surgeonRowAdmin]}>
-                  <View style={[styles.surgeonAvatar, item.isAdmin && { backgroundColor: Colors.primary }]}>
+                <View style={[
+                  styles.surgeonRow,
+                  item.isAdmin && styles.surgeonRowAdmin,
+                  !item.isActive && styles.surgeonRowInactive,
+                ]}>
+                  <View style={[
+                    styles.surgeonAvatar,
+                    item.isAdmin && { backgroundColor: Colors.primary },
+                    !item.isActive && { backgroundColor: Colors.textLight },
+                  ]}>
                     <Ionicons name={item.isAdmin ? "shield-checkmark" : "person"} size={18} color={Colors.white} />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.surgeonName}>{item.fullName}</Text>
+                    <Text style={[styles.surgeonName, !item.isActive && { color: Colors.textLight }]}>
+                      {item.fullName}
+                    </Text>
                     <Text style={styles.surgeonUsername}>
                       @{item.username}
                       {item.isAdmin ? " (Admin)" : ""}
@@ -277,17 +292,24 @@ export default function SettingsScreen() {
                     {item.isAdmin && (
                       <Text style={styles.protectedLabel}>Protected account</Text>
                     )}
+                    {!item.isAdmin && !item.isActive && (
+                      <Text style={styles.inactiveLabel}>Inactive</Text>
+                    )}
                   </View>
                   {!item.isAdmin && (
                     <Pressable
-                      onPress={() => handleDeleteSurgeon(item.id, item.fullName)}
+                      onPress={() => handleToggleActive(item.id, item.fullName, item.isActive)}
                       style={({ pressed }) => [
-                        styles.deleteButton,
+                        item.isActive ? styles.deactivateButton : styles.activateButton,
                         pressed && { opacity: 0.6 },
                       ]}
-                      disabled={deleteSurgeonMutation.isPending}
+                      disabled={toggleActiveMutation.isPending}
                     >
-                      <Ionicons name="trash-outline" size={18} color={Colors.error} />
+                      <Ionicons
+                        name={item.isActive ? "close-circle-outline" : "checkmark-circle-outline"}
+                        size={20}
+                        color={item.isActive ? Colors.error : "#16a34a"}
+                      />
                     </Pressable>
                   )}
                 </View>
@@ -557,13 +579,32 @@ const styles = StyleSheet.create({
     color: Colors.primary,
     marginTop: 2,
   },
-  deleteButton: {
+  surgeonRowInactive: {
+    opacity: 0.7,
+    borderColor: Colors.border,
+    backgroundColor: "#F9FAFB",
+  },
+  inactiveLabel: {
+    fontSize: 10,
+    fontFamily: "Inter_500Medium",
+    color: Colors.error,
+    marginTop: 2,
+  },
+  deactivateButton: {
     width: 36,
     height: 36,
     borderRadius: 10,
     justifyContent: "center" as const,
     alignItems: "center" as const,
     backgroundColor: "#FEF2F2",
+  },
+  activateButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    justifyContent: "center" as const,
+    alignItems: "center" as const,
+    backgroundColor: "#F0FDF4",
   },
   emptyText: {
     textAlign: "center" as const,

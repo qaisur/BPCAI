@@ -19,6 +19,7 @@ export const surgeons = pgTable("surgeons", {
   password: text("password").notNull(),
   fullName: text("full_name").notNull(),
   isAdmin: boolean("is_admin").default(false).notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -77,6 +78,7 @@ export const visits = pgTable("visits", {
   visitDate: date("visit_date").notNull(),
   visitType: text("visit_type").notNull(),
   intervention: text("intervention"),
+  nextFollowUpDate: date("next_follow_up_date"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
