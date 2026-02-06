@@ -8,7 +8,6 @@ import {
   ActivityIndicator,
   Image,
   Platform,
-  Alert,
 } from "react-native";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -18,12 +17,10 @@ import Colors from "@/constants/colors";
 import { Ionicons } from "@expo/vector-icons";
 
 export default function LoginScreen() {
-  const { surgeon, isLoading, login, register } = useAuth();
+  const { surgeon, isLoading, login } = useAuth();
   const insets = useSafeAreaInsets();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [fullName, setFullName] = useState("");
-  const [isRegistering, setIsRegistering] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -47,18 +44,10 @@ export default function LoginScreen() {
       setError("Please fill in all fields");
       return;
     }
-    if (isRegistering && !fullName.trim()) {
-      setError("Please enter your full name");
-      return;
-    }
 
     setSubmitting(true);
     try {
-      if (isRegistering) {
-        await register(username.trim(), password, fullName.trim());
-      } else {
-        await login(username.trim(), password);
-      }
+      await login(username.trim(), password);
       router.replace("/(tabs)");
     } catch (e: any) {
       const msg = e.message || "Something went wrong";
@@ -91,9 +80,7 @@ export default function LoginScreen() {
         </View>
 
         <View style={styles.formCard}>
-          <Text style={styles.formTitle}>
-            {isRegistering ? "Create Account" : "Surgeon Login"}
-          </Text>
+          <Text style={styles.formTitle}>Surgeon Login</Text>
 
           {error ? (
             <View style={styles.errorBox}>
@@ -101,28 +88,6 @@ export default function LoginScreen() {
               <Text style={styles.errorText}>{error}</Text>
             </View>
           ) : null}
-
-          {isRegistering && (
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Full Name</Text>
-              <View style={styles.inputWrapper}>
-                <Ionicons
-                  name="person-outline"
-                  size={20}
-                  color={Colors.textSecondary}
-                  style={styles.inputIcon}
-                />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Dr. John Doe"
-                  value={fullName}
-                  onChangeText={setFullName}
-                  autoCapitalize="words"
-                  placeholderTextColor={Colors.textLight}
-                />
-              </View>
-            </View>
-          )}
 
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>Username</Text>
@@ -187,28 +152,13 @@ export default function LoginScreen() {
             {submitting ? (
               <ActivityIndicator color={Colors.white} size="small" />
             ) : (
-              <Text style={styles.submitButtonText}>
-                {isRegistering ? "Create Account" : "Sign In"}
-              </Text>
+              <Text style={styles.submitButtonText}>Sign In</Text>
             )}
           </Pressable>
 
-          <Pressable
-            style={styles.switchButton}
-            onPress={() => {
-              setIsRegistering(!isRegistering);
-              setError("");
-            }}
-          >
-            <Text style={styles.switchText}>
-              {isRegistering
-                ? "Already have an account? "
-                : "Need an account? "}
-              <Text style={styles.switchLink}>
-                {isRegistering ? "Sign In" : "Register"}
-              </Text>
-            </Text>
-          </Pressable>
+          <Text style={styles.contactAdmin}>
+            Contact your administrator for login credentials
+          </Text>
         </View>
       </KeyboardAwareScrollViewCompat>
     </View>
@@ -340,17 +290,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: "Inter_600SemiBold",
   },
-  switchButton: {
+  contactAdmin: {
     marginTop: 16,
-    alignItems: "center",
-  },
-  switchText: {
-    fontSize: 14,
+    textAlign: "center" as const,
+    fontSize: 13,
     fontFamily: "Inter_400Regular",
     color: Colors.textSecondary,
-  },
-  switchLink: {
-    color: Colors.primary,
-    fontFamily: "Inter_600SemiBold",
   },
 });

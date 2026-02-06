@@ -18,6 +18,7 @@ export const surgeons = pgTable("surgeons", {
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
   fullName: text("full_name").notNull(),
+  isAdmin: boolean("is_admin").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -51,6 +52,7 @@ export const patients = pgTable("patients", {
   associatedFeaturesAtBirth: text("associated_features_at_birth"),
   involvement: text("involvement"),
   associatedFeatures: text("associated_features"),
+  associatedFeaturesNote: text("associated_features_note"),
 
   createdAt: timestamp("created_at").defaultNow().notNull(),
   createdBy: integer("created_by").references(() => surgeons.id),

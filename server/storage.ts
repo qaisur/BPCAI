@@ -19,7 +19,7 @@ import {
   type InsertClinicalExam,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, or, ilike, desc, asc } from "drizzle-orm";
+import { eq, or, ilike, desc, asc, sql } from "drizzle-orm";
 
 export interface IStorage {
   getSurgeon(id: number): Promise<Surgeon | undefined>;
@@ -27,6 +27,7 @@ export interface IStorage {
   createSurgeon(surgeon: InsertSurgeon): Promise<Surgeon>;
   getAllSurgeons(): Promise<Surgeon[]>;
 
+  getNextPatientId(): Promise<string>;
   getPatient(id: number): Promise<Patient | undefined>;
   getPatientByPatientId(patientId: string): Promise<Patient | undefined>;
   searchPatients(query: string): Promise<Patient[]>;
@@ -78,6 +79,15 @@ export class DatabaseStorage implements IStorage {
 
   async getAllSurgeons(): Promise<Surgeon[]> {
     return db.select().from(surgeons);
+  }
+
+  async getNextPatientId(): Promise<string> {
+    const result = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(patients);
+    const count = Number(result[0]?.count || 0);
+    const nextNum = count + 1;
+    return `BPC-${String(nextNum).padStart(6, "0")}`;
   }
 
   async getPatient(id: number): Promise<Patient | undefined> {

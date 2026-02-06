@@ -48,8 +48,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     })
   );
 
-  app.post("/api/auth/register", async (req: Request, res: Response) => {
+  app.post("/api/admin/create-surgeon", requireAuth, async (req: Request, res: Response) => {
     try {
+      const admin = await storage.getSurgeon(req.session.surgeonId!);
+      if (!admin || !admin.isAdmin) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
       const { username, password, fullName } = req.body;
       if (!username || !password || !fullName) {
         return res
@@ -69,12 +74,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         fullName,
       });
 
-      req.session.surgeonId = surgeon.id;
       res.json({
         id: surgeon.id,
         username: surgeon.username,
         fullName: surgeon.fullName,
       });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/admin/surgeons", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const admin = await storage.getSurgeon(req.session.surgeonId!);
+      if (!admin || !admin.isAdmin) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      const allSurgeons = await storage.getAllSurgeons();
+      res.json(allSurgeons.map(s => ({
+        id: s.id,
+        username: s.username,
+        fullName: s.fullName,
+        isAdmin: s.isAdmin,
+        createdAt: s.createdAt,
+      })));
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
@@ -104,6 +127,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         id: surgeon.id,
         username: surgeon.username,
         fullName: surgeon.fullName,
+        isAdmin: surgeon.isAdmin,
       });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -128,7 +152,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       id: surgeon.id,
       username: surgeon.username,
       fullName: surgeon.fullName,
+      isAdmin: surgeon.isAdmin,
     });
+  });
+
+  app.get("/api/patients/next-id", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const nextId = await storage.getNextPatientId();
+      res.json({ patientId: nextId });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
   });
 
   app.get(

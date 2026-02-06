@@ -6,6 +6,7 @@ interface Surgeon {
   id: number;
   username: string;
   fullName: string;
+  isAdmin: boolean;
 }
 
 interface AuthContextValue {
