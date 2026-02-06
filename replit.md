@@ -18,11 +18,15 @@ Mobile medical records application for a pediatric brachial plexus palsy clinic 
 - 2026-02-06: Mallet aggregate score corrected to /25 (5 categories x 5 max)
 - 2026-02-06: Associated Features Note field added to patient form
 - 2026-02-06: "Hand Prolapse" added to Presentation options, "Other" added to gender options
+- 2026-02-06: DatePicker maxDate prop added - DOB and Visit Date cannot be future dates
+- 2026-02-06: "Hand to Midline" added as 6th Mallet Score item, aggregate updated to /30
+- 2026-02-06: Admin account set to Dr. Qaisur Rabbi (username: qaisurR), contact info on login page
+- 2026-02-06: Login page shows admin contact: Phone +8801534919618, Email qaisur@gmail.com
 
 ## User Preferences
 - Data displayed in longitudinal table format with dates as columns
 - HSC AMS Score: 0-7 scale dropdown for each movement (Shoulder, Elbow, Forearm, Wrist, Finger, Thumb)
-- Mallet Score: Grade I-V dropdown for 5 movements, aggregate out of 25
+- Mallet Score: Grade I-V dropdown for 6 movements (incl. Hand to Midline), aggregate out of 30
 - Clinical Examination: Shoulder Subluxation & Putti Sign (Yes/No dropdown), Passive/Active ER (-90 to +90 degrees, 5-degree increments), Elbow FFD/Trumpeting/ABD/AIRD/IR (0-180 degrees, 5-degree increments)
 - Patient search by name and ID number
 - Track which surgeon viewed/updated records with timestamps
