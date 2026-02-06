@@ -22,6 +22,8 @@ Mobile medical records application for a pediatric brachial plexus palsy clinic 
 - 2026-02-06: "Hand to Midline" added as 6th Mallet Score item, aggregate updated to /30
 - 2026-02-06: Admin account set to Dr. Qaisur Rabbi (username: qaisurR), contact info on login page
 - 2026-02-06: Login page shows admin contact: Phone +8801534919618, Email qaisur@gmail.com
+- 2026-02-06: Admin account protected (non-deletable) in Manage Surgeons, non-admin accounts have delete button
+- 2026-02-06: Patient PDF download feature - A4 PDF with all patient info + visit data (HSC AMS, Mallet, Clinical)
 
 ## User Preferences
 - Data displayed in longitudinal table format with dates as columns
