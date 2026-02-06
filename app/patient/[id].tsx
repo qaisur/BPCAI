@@ -15,6 +15,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useQuery } from "@tanstack/react-query";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Linking from "expo-linking";
+import * as FileSystem from "expo-file-system";
+import * as Sharing from "expo-sharing";
 import Colors from "@/constants/colors";
 import { getApiUrl } from "@/lib/query-client";
 
@@ -442,12 +444,37 @@ export default function PatientDetailScreen() {
             styles.pdfButton,
             pressed && { opacity: 0.8 },
           ]}
-          onPress={() => {
-            const url = `${getApiUrl()}/api/patients/${id}/pdf`;
-            if (Platform.OS === "web") {
-              window.open(url, "_blank");
-            } else {
-              Linking.openURL(url);
+          onPress={async () => {
+            try {
+              const url = `${getApiUrl()}api/patients/${id}/pdf`;
+              if (Platform.OS === "web") {
+                const res = await fetch(url, { credentials: "include" });
+                if (!res.ok) throw new Error("Failed to generate PDF");
+                const blob = await res.blob();
+                const blobUrl = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = blobUrl;
+                a.download = `${patient?.patientId || "patient"}_record.pdf`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(blobUrl);
+              } else {
+                const fileUri = `${FileSystem.cacheDirectory}${patient?.patientId || "patient"}_record.pdf`;
+                const downloadResult = await FileSystem.downloadAsync(url, fileUri);
+                if (downloadResult.status !== 200) throw new Error("Failed to download PDF");
+                const canShare = await Sharing.isAvailableAsync();
+                if (canShare) {
+                  await Sharing.shareAsync(fileUri, {
+                    mimeType: "application/pdf",
+                    dialogTitle: "Patient Record PDF",
+                  });
+                } else {
+                  Alert.alert("PDF Saved", `PDF saved to: ${fileUri}`);
+                }
+              }
+            } catch (error: any) {
+              Alert.alert("Error", error.message || "Failed to download PDF");
             }
           }}
         >
