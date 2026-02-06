@@ -25,6 +25,7 @@ interface VisitData {
   visitDate: string;
   visitType: string;
   intervention?: string;
+  nextFollowUpDate?: string;
   surgeonName: string;
   hscAmsScore: any;
   malletScore: any;
@@ -221,6 +222,11 @@ export default function PatientDetailScreen() {
                   {visit.intervention && (
                     <Text style={styles.visitIntervention}>
                       Intervention/Note: {visit.intervention}
+                    </Text>
+                  )}
+                  {visit.nextFollowUpDate && (
+                    <Text style={styles.visitFollowUp}>
+                      Next Follow-up: {formatDate(visit.nextFollowUpDate)}
                     </Text>
                   )}
                 </View>
@@ -787,6 +793,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: "Inter_500Medium",
     color: Colors.secondary,
+    marginTop: 2,
+  },
+  visitFollowUp: {
+    fontSize: 12,
+    fontFamily: "Inter_500Medium",
+    color: Colors.primary,
     marginTop: 2,
   },
   noDataContainer: {

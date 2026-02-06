@@ -14,6 +14,10 @@ function NativeTabLayout() {
         <Icon sf={{ default: "person.2", selected: "person.2.fill" }} />
         <Label>Patients</Label>
       </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="followups">
+        <Icon sf={{ default: "calendar", selected: "calendar.badge.clock" }} />
+        <Label>Follow-ups</Label>
+      </NativeTabs.Trigger>
       <NativeTabs.Trigger name="settings">
         <Icon sf={{ default: "gearshape", selected: "gearshape.fill" }} />
         <Label>Settings</Label>
@@ -59,6 +63,15 @@ function ClassicTabLayout() {
           title: "Patients",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="people" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="followups"
+        options={{
+          title: "Follow-ups",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="calendar-outline" size={size} color={color} />
           ),
         }}
       />
