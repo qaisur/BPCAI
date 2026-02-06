@@ -24,6 +24,11 @@ Mobile medical records application for a pediatric brachial plexus palsy clinic 
 - 2026-02-06: Login page shows admin contact: Phone +8801534919618, Email qaisur@gmail.com
 - 2026-02-06: Admin account protected (non-deletable) in Manage Surgeons, non-admin accounts have delete button
 - 2026-02-06: Patient PDF download feature - A4 PDF with all patient info + visit data (HSC AMS, Mallet, Clinical)
+- 2026-02-06: PDF rewritten to longitudinal table format with visit dates as columns and score items as rows
+- 2026-02-06: Surgeon deletion replaced with activate/deactivate toggle system (isActive column)
+- 2026-02-06: Inactive surgeons cannot log in but all their records (patients, visits) are preserved
+- 2026-02-06: Follow-up scheduling - nextFollowUpDate field added to visits with optional date picker
+- 2026-02-06: Follow-ups tab added to main navigation showing patients due on selected date (Name, Age, Site, Contact)
 
 ## User Preferences
 - Data displayed in longitudinal table format with dates as columns
