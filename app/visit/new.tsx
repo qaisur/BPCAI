@@ -131,6 +131,7 @@ export default function NewVisitScreen() {
   const [handToNeck, setHandToNeck] = useState("");
   const [handToSpine, setHandToSpine] = useState("");
   const [handToMouth, setHandToMouth] = useState("");
+  const [handToMidline, setHandToMidline] = useState("");
 
   const [shoulderSubluxation, setShoulderSubluxation] = useState("");
   const [passiveER, setPassiveER] = useState("");
@@ -243,12 +244,14 @@ export default function NewVisitScreen() {
           handToNeck: parseInt(handToNeck) || null,
           handToSpine: parseInt(handToSpine) || null,
           handToMouth: parseInt(handToMouth) || null,
+          handToMidline: parseInt(handToMidline) || null,
           aggregateScore:
             (parseInt(globalAbduction) || 0) +
             (parseInt(globalExtRotation) || 0) +
             (parseInt(handToNeck) || 0) +
             (parseInt(handToSpine) || 0) +
-            (parseInt(handToMouth) || 0),
+            (parseInt(handToMouth) || 0) +
+            (parseInt(handToMidline) || 0),
         });
       }
 
@@ -316,7 +319,8 @@ export default function NewVisitScreen() {
     (parseInt(globalExtRotation) || 0) +
     (parseInt(handToNeck) || 0) +
     (parseInt(handToSpine) || 0) +
-    (parseInt(handToMouth) || 0);
+    (parseInt(handToMouth) || 0) +
+    (parseInt(handToMidline) || 0);
 
   const formTabs = [
     { key: "hscams" as const, label: "HSC AMS" },
@@ -349,6 +353,7 @@ export default function NewVisitScreen() {
             <DatePicker
               value={visitDate}
               onChange={setVisitDate}
+              maxDate={new Date()}
               placeholder="Select visit date"
             />
           </View>
@@ -469,10 +474,11 @@ export default function NewVisitScreen() {
             <ScoreDropdownRow label="Hand to Neck" value={handToNeck} onSelect={setHandToNeck} options={malletOptions} placeholder="I-V" />
             <ScoreDropdownRow label="Hand to Spine" value={handToSpine} onSelect={setHandToSpine} options={malletOptions} placeholder="I-V" />
             <ScoreDropdownRow label="Hand to Mouth" value={handToMouth} onSelect={setHandToMouth} options={malletOptions} placeholder="I-V" />
+            <ScoreDropdownRow label="Hand to Midline" value={handToMidline} onSelect={setHandToMidline} options={malletOptions} placeholder="I-V" />
 
             <View style={styles.totalRow}>
               <Text style={styles.totalLabel}>Aggregate Score</Text>
-              <Text style={styles.totalValue}>{totalMallet}/25</Text>
+              <Text style={styles.totalValue}>{totalMallet}/30</Text>
             </View>
           </View>
         )}

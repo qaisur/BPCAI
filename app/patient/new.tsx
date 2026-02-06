@@ -231,6 +231,7 @@ export default function NewPatientScreen() {
             <DatePicker
               value={dateOfBirth}
               onChange={setDateOfBirth}
+              maxDate={new Date()}
               placeholder="Select date of birth"
             />
           </View>

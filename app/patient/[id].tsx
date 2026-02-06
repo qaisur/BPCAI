@@ -326,8 +326,9 @@ export default function PatientDetailScreen() {
                 (s.globalExternalRotation || 0) +
                 (s.handToNeck || 0) +
                 (s.handToSpine || 0) +
-                (s.handToMouth || 0);
-              return `${total}/25`;
+                (s.handToMouth || 0) +
+                (s.handToMidline || 0);
+              return `${total}/30`;
             })}
             isHeader
           />
@@ -352,6 +353,10 @@ export default function PatientDetailScreen() {
           <DataTableRow
             label="Hand to Mouth"
             values={scores.map((s: any) => String(s.handToMouth ?? "-"))}
+          />
+          <DataTableRow
+            label="Hand to Midline"
+            values={scores.map((s: any) => String(s.handToMidline ?? "-"))}
           />
         </View>
       </ScrollView>

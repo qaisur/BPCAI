@@ -156,9 +156,19 @@ export default function LoginScreen() {
             )}
           </Pressable>
 
-          <Text style={styles.contactAdmin}>
-            Contact your administrator for login credentials
-          </Text>
+          <View style={styles.contactBox}>
+            <Text style={styles.contactTitle}>Need login credentials?</Text>
+            <Text style={styles.contactName}>Dr. Qaisur Rabbi</Text>
+            <Text style={styles.contactRole}>Pediatric Orthopedic Surgeon</Text>
+            <View style={styles.contactRow}>
+              <Ionicons name="call-outline" size={14} color={Colors.textSecondary} />
+              <Text style={styles.contactDetail}>+8801534919618</Text>
+            </View>
+            <View style={styles.contactRow}>
+              <Ionicons name="mail-outline" size={14} color={Colors.textSecondary} />
+              <Text style={styles.contactDetail}>qaisur@gmail.com</Text>
+            </View>
+          </View>
         </View>
       </KeyboardAwareScrollViewCompat>
     </View>
@@ -290,11 +300,39 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: "Inter_600SemiBold",
   },
-  contactAdmin: {
-    marginTop: 16,
-    textAlign: "center" as const,
+  contactBox: {
+    marginTop: 20,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: Colors.borderLight,
+    alignItems: "center" as const,
+  },
+  contactTitle: {
     fontSize: 13,
+    fontFamily: "Inter_500Medium",
+    color: Colors.textSecondary,
+    marginBottom: 8,
+  },
+  contactName: {
+    fontSize: 15,
+    fontFamily: "Inter_700Bold",
+    color: Colors.secondary,
+  },
+  contactRole: {
+    fontSize: 12,
     fontFamily: "Inter_400Regular",
     color: Colors.textSecondary,
+    marginBottom: 6,
+  },
+  contactRow: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: 6,
+    marginTop: 4,
+  },
+  contactDetail: {
+    fontSize: 13,
+    fontFamily: "Inter_500Medium",
+    color: Colors.text,
   },
 });

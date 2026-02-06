@@ -155,6 +155,7 @@ export const malletScores = pgTable("mallet_scores", {
   handToNeck: integer("hand_to_neck"),
   handToSpine: integer("hand_to_spine"),
   handToMouth: integer("hand_to_mouth"),
+  handToMidline: integer("hand_to_midline"),
   aggregateScore: integer("aggregate_score"),
 
   ga: text("ga"),

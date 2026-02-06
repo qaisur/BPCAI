@@ -14,6 +14,7 @@ interface DatePickerProps {
   value: string;
   onChange: (date: string) => void;
   placeholder?: string;
+  maxDate?: Date;
 }
 
 const MONTHS = [
@@ -25,6 +26,7 @@ export function DatePicker({
   value,
   onChange,
   placeholder = "Select date",
+  maxDate,
 }: DatePickerProps) {
   const [visible, setVisible] = useState(false);
 
@@ -43,11 +45,14 @@ export function DatePicker({
   const [selectedMonth, setSelectedMonth] = useState(parsed.month);
   const [selectedDay, setSelectedDay] = useState(parsed.day);
 
+  const today = useMemo(() => maxDate || new Date(), [maxDate]);
+
   const years = useMemo(() => {
     const arr: number[] = [];
-    for (let y = 2030; y >= 1990; y--) arr.push(y);
+    const maxYear = today.getFullYear();
+    for (let y = maxYear; y >= 1990; y--) arr.push(y);
     return arr;
-  }, []);
+  }, [today]);
 
   const daysInMonth = useMemo(() => {
     return new Date(selectedYear, selectedMonth + 1, 0).getDate();
@@ -72,10 +77,22 @@ export function DatePicker({
   }
 
   function handleConfirm() {
-    const day = Math.min(selectedDay, daysInMonth);
-    const mm = String(selectedMonth + 1).padStart(2, "0");
-    const dd = String(day).padStart(2, "0");
-    onChange(`${selectedYear}-${mm}-${dd}`);
+    let finalYear = selectedYear;
+    let finalMonth = selectedMonth;
+    let finalDay = Math.min(selectedDay, daysInMonth);
+
+    if (maxDate) {
+      const selected = new Date(finalYear, finalMonth, finalDay);
+      if (selected > maxDate) {
+        finalYear = maxDate.getFullYear();
+        finalMonth = maxDate.getMonth();
+        finalDay = maxDate.getDate();
+      }
+    }
+
+    const mm = String(finalMonth + 1).padStart(2, "0");
+    const dd = String(finalDay).padStart(2, "0");
+    onChange(`${finalYear}-${mm}-${dd}`);
     setVisible(false);
   }
 
