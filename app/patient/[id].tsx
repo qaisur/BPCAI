@@ -8,12 +8,15 @@ import {
   ActivityIndicator,
   Platform,
   RefreshControl,
+  Alert,
 } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useQuery } from "@tanstack/react-query";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import * as Linking from "expo-linking";
 import Colors from "@/constants/colors";
+import { getApiUrl } from "@/lib/query-client";
 
 interface VisitData {
   id: number;
@@ -436,6 +439,22 @@ export default function PatientDetailScreen() {
         </View>
         <Pressable
           style={({ pressed }) => [
+            styles.pdfButton,
+            pressed && { opacity: 0.8 },
+          ]}
+          onPress={() => {
+            const url = `${getApiUrl()}/api/patients/${id}/pdf`;
+            if (Platform.OS === "web") {
+              window.open(url, "_blank");
+            } else {
+              Linking.openURL(url);
+            }
+          }}
+        >
+          <Ionicons name="document-text" size={18} color={Colors.secondary} />
+        </Pressable>
+        <Pressable
+          style={({ pressed }) => [
             styles.newVisitButton,
             pressed && { opacity: 0.8 },
           ]}
@@ -617,6 +636,16 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: "Inter_400Regular",
     color: Colors.textSecondary,
+  },
+  pdfButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: "#EFF6FF",
+    justifyContent: "center" as const,
+    alignItems: "center" as const,
+    borderWidth: 1,
+    borderColor: Colors.borderLight,
   },
   newVisitButton: {
     width: 36,

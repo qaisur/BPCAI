@@ -55,6 +55,41 @@ export default function SettingsScreen() {
     },
   });
 
+  const deleteSurgeonMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await apiRequest("DELETE", `/api/admin/surgeons/${id}`);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/surgeons"] });
+      Alert.alert("Success", "Surgeon account removed");
+    },
+    onError: (error: any) => {
+      Alert.alert("Error", error.message || "Failed to remove account");
+    },
+  });
+
+  function handleDeleteSurgeon(id: number, name: string) {
+    if (Platform.OS === "web") {
+      if (confirm(`Remove ${name}'s account? This cannot be undone.`)) {
+        deleteSurgeonMutation.mutate(id);
+      }
+    } else {
+      Alert.alert(
+        "Remove Account",
+        `Remove ${name}'s account? This cannot be undone.`,
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Remove",
+            style: "destructive",
+            onPress: () => deleteSurgeonMutation.mutate(id),
+          },
+        ]
+      );
+    }
+  }
+
   function handleCreateSurgeon() {
     setCreateError("");
     if (!newUsername.trim() || !newPassword.trim() || !newFullName.trim()) {
@@ -229,9 +264,9 @@ export default function SettingsScreen() {
               keyExtractor={(item) => item.id.toString()}
               contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
               renderItem={({ item }) => (
-                <View style={styles.surgeonRow}>
-                  <View style={styles.surgeonAvatar}>
-                    <Ionicons name="person" size={18} color={Colors.white} />
+                <View style={[styles.surgeonRow, item.isAdmin && styles.surgeonRowAdmin]}>
+                  <View style={[styles.surgeonAvatar, item.isAdmin && { backgroundColor: Colors.primary }]}>
+                    <Ionicons name={item.isAdmin ? "shield-checkmark" : "person"} size={18} color={Colors.white} />
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.surgeonName}>{item.fullName}</Text>
@@ -239,7 +274,22 @@ export default function SettingsScreen() {
                       @{item.username}
                       {item.isAdmin ? " (Admin)" : ""}
                     </Text>
+                    {item.isAdmin && (
+                      <Text style={styles.protectedLabel}>Protected account</Text>
+                    )}
                   </View>
+                  {!item.isAdmin && (
+                    <Pressable
+                      onPress={() => handleDeleteSurgeon(item.id, item.fullName)}
+                      style={({ pressed }) => [
+                        styles.deleteButton,
+                        pressed && { opacity: 0.6 },
+                      ]}
+                      disabled={deleteSurgeonMutation.isPending}
+                    >
+                      <Ionicons name="trash-outline" size={18} color={Colors.error} />
+                    </Pressable>
+                  )}
                 </View>
               )}
               ListEmptyComponent={
@@ -491,10 +541,29 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_600SemiBold",
     color: Colors.text,
   },
+  surgeonRowAdmin: {
+    borderColor: Colors.primary,
+    borderWidth: 1,
+    backgroundColor: "#FEF2F2",
+  },
   surgeonUsername: {
     fontSize: 12,
     fontFamily: "Inter_400Regular",
     color: Colors.textSecondary,
+  },
+  protectedLabel: {
+    fontSize: 10,
+    fontFamily: "Inter_500Medium",
+    color: Colors.primary,
+    marginTop: 2,
+  },
+  deleteButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    justifyContent: "center" as const,
+    alignItems: "center" as const,
+    backgroundColor: "#FEF2F2",
   },
   emptyText: {
     textAlign: "center" as const,

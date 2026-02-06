@@ -26,6 +26,7 @@ export interface IStorage {
   getSurgeonByUsername(username: string): Promise<Surgeon | undefined>;
   createSurgeon(surgeon: InsertSurgeon): Promise<Surgeon>;
   getAllSurgeons(): Promise<Surgeon[]>;
+  deleteSurgeon(id: number): Promise<void>;
 
   getNextPatientId(): Promise<string>;
   getPatient(id: number): Promise<Patient | undefined>;
@@ -79,6 +80,10 @@ export class DatabaseStorage implements IStorage {
 
   async getAllSurgeons(): Promise<Surgeon[]> {
     return db.select().from(surgeons);
+  }
+
+  async deleteSurgeon(id: number): Promise<void> {
+    await db.delete(surgeons).where(eq(surgeons.id, id));
   }
 
   async getNextPatientId(): Promise<string> {
