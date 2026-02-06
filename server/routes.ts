@@ -537,105 +537,217 @@ export async function registerRoutes(app: Express): Promise<Server> {
           doc.moveTo(40, doc.y).lineTo(doc.page.width - 40, doc.y).strokeColor("#E5E7EB").stroke();
           doc.moveDown(0.5);
 
-          for (let i = 0; i < visitsWithData.length; i++) {
-            const visit = visitsWithData[i];
+          const margin = 40;
+          const tableWidth = doc.page.width - margin * 2;
+          const rowHeight = 16;
+          const headerRowHeight = 20;
+          const fontSize = 7;
+          const headerFontSize = 7.5;
+          const maxVisitsPerPage = 6;
 
-            if (doc.y > doc.page.height - 200) {
-              doc.addPage();
-            }
+          function drawTable(
+            title: string,
+            labelColumns: { header: string; width: number }[],
+            rows: { labels: string[]; values: (string | number | null | undefined)[][] }[],
+            visits: typeof visitsWithData,
+            startIdx: number,
+            count: number
+          ) {
+            const labelWidth = labelColumns.reduce((s, c) => s + c.width, 0);
+            const dataColWidth = (tableWidth - labelWidth) / count;
+            const slicedVisits = visits.slice(startIdx, startIdx + count);
 
-            doc.fontSize(13).fillColor(primaryColor).text(
-              `Visit ${i + 1}: ${formatPdfDate(visit.visitDate)}`,
-            );
-            doc.moveDown(0.2);
-            addField("Visit Type", visit.visitType);
-            addField("Age at Visit", calcAge(patient.dateOfBirth, visit.visitDate));
-            addField("Surgeon", visit.surgeonName);
-            addField("Intervention/Note", visit.intervention);
+            if (doc.y > doc.page.height - 100) doc.addPage();
+
+            doc.fontSize(11).fillColor(secondaryColor).text(title, margin);
             doc.moveDown(0.3);
 
-            if (visit.hscAmsScore) {
-              const s = visit.hscAmsScore;
-              doc.fontSize(11).fillColor(secondaryColor).text("HSC AMS Score");
-              doc.moveDown(0.2);
+            let startY = doc.y;
+            let y = startY;
 
-              const hscRows = [
-                ["Shoulder Abd.", s.shoulderAbduction, "Shoulder Add.", s.shoulderAdduction],
-                ["Shoulder F.Flex.", s.shoulderFFlexion, "Shoulder ER", s.shoulderER],
-                ["Shoulder IR", s.shoulderIR, "Elbow Flex.", s.elbowFlexion],
-                ["Elbow Ext.", s.elbowExtension, "Forearm Sup.", s.forearmSupination],
-                ["Forearm Pro.", s.forearmPronation, "Wrist Flex.", s.wristFlexion],
-                ["Wrist Ext.", s.wristExtension, "Finger Flex.", s.fingerFlexion],
-                ["Finger Ext.", s.fingerExtension, "Thumb Flex.", s.thumbFlexion],
-                ["Thumb Ext.", s.thumbExtension, "Total Score", s.totalScore],
-              ];
+            function drawCellBorders(x: number, cy: number, w: number, h: number) {
+              doc.rect(x, cy, w, h).strokeColor("#D1D5DB").lineWidth(0.5).stroke();
+            }
 
-              for (const row of hscRows) {
-                doc.fontSize(8).fillColor("#6B7280")
-                  .text(`${row[0]}: `, 50, doc.y, { continued: true, width: 120 })
-                  .fillColor("#1A1A2E").text(`${row[1] ?? "-"}`, { continued: true })
-                  .fillColor("#6B7280").text(`     ${row[2]}: `, { continued: true })
-                  .fillColor("#1A1A2E").text(`${row[3] ?? "-"}`);
+            function drawHeaderRow(labels: string[], bgColor: string) {
+              if (y > doc.page.height - 40) { doc.addPage(); y = margin; startY = y; }
+              doc.rect(margin, y, tableWidth, headerRowHeight).fillColor(bgColor).fill();
+              let x = margin;
+              for (let c = 0; c < labelColumns.length; c++) {
+                drawCellBorders(x, y, labelColumns[c].width, headerRowHeight);
+                doc.fontSize(headerFontSize).fillColor("#1A1A2E")
+                  .text(labels[c] || "", x + 3, y + 4, { width: labelColumns[c].width - 6, height: headerRowHeight });
+                x += labelColumns[c].width;
+              }
+              for (let v = 0; v < count; v++) {
+                drawCellBorders(x, y, dataColWidth, headerRowHeight);
+                const val = v < labels.length - labelColumns.length
+                  ? String(labels[labelColumns.length + v] ?? "")
+                  : "";
+                doc.fontSize(headerFontSize).fillColor("#1A1A2E")
+                  .text(val, x + 2, y + 4, { width: dataColWidth - 4, height: headerRowHeight, align: "center" });
+                x += dataColWidth;
+              }
+              y += headerRowHeight;
+            }
+
+            const dateLabels: string[] = [...labelColumns.map(c => c.header)];
+            for (const v of slicedVisits) dateLabels.push(formatPdfDate(v.visitDate));
+            doc.rect(margin, y, tableWidth, headerRowHeight).fillColor("#C41E3A").fill();
+            let hx = margin;
+            for (let c = 0; c < labelColumns.length; c++) {
+              drawCellBorders(hx, y, labelColumns[c].width, headerRowHeight);
+              doc.fontSize(headerFontSize).fillColor("#FFFFFF")
+                .text(dateLabels[c] || "", hx + 3, y + 5, { width: labelColumns[c].width - 6, height: headerRowHeight });
+              hx += labelColumns[c].width;
+            }
+            for (let v = 0; v < count; v++) {
+              drawCellBorders(hx, y, dataColWidth, headerRowHeight);
+              doc.fontSize(headerFontSize).fillColor("#FFFFFF")
+                .text(dateLabels[labelColumns.length + v] || "", hx + 2, y + 5, { width: dataColWidth - 4, height: headerRowHeight, align: "center" });
+              hx += dataColWidth;
+            }
+            y += headerRowHeight;
+
+            for (let r = 0; r < rows.length; r++) {
+              if (y > doc.page.height - 40) { doc.addPage(); y = margin; }
+              const row = rows[r];
+              const bgColor = r % 2 === 0 ? "#FFFFFF" : "#F9FAFB";
+              doc.rect(margin, y, tableWidth, rowHeight).fillColor(bgColor).fill();
+
+              let rx = margin;
+              for (let c = 0; c < labelColumns.length; c++) {
+                drawCellBorders(rx, y, labelColumns[c].width, rowHeight);
+                const isBold = c === 0 && (r === 0 || rows[r].labels[0] !== rows[r - 1]?.labels[0]);
+                doc.fontSize(fontSize).fillColor("#374151")
+                  .font(isBold ? "Helvetica-Bold" : "Helvetica")
+                  .text(row.labels[c] || "", rx + 3, y + 4, { width: labelColumns[c].width - 6, height: rowHeight });
+              rx += labelColumns[c].width;
               }
 
-              addField("Sensation", s.sensation);
-              addField("Advise", s.advise);
-              addField("Remarks", s.remarks);
-              doc.moveDown(0.3);
+              for (let v = 0; v < count; v++) {
+                drawCellBorders(rx, y, dataColWidth, rowHeight);
+                const val = v < row.values.length ? row.values[v] : null;
+                doc.fontSize(fontSize).fillColor("#1A1A2E").font("Helvetica")
+                  .text(val != null ? String(val) : "", rx + 2, y + 4, { width: dataColWidth - 4, height: rowHeight, align: "center" });
+                rx += dataColWidth;
+              }
+              y += rowHeight;
             }
 
-            if (visit.malletScore) {
-              const m = visit.malletScore;
-              if (doc.y > doc.page.height - 150) doc.addPage();
-              doc.fontSize(11).fillColor(secondaryColor).text("Mallet Score");
-              doc.moveDown(0.2);
+            doc.y = y;
+            doc.moveDown(0.5);
+          }
 
-              const total =
-                (m.globalAbduction || 0) + (m.globalExternalRotation || 0) +
-                (m.handToNeck || 0) + (m.handToSpine || 0) +
-                (m.handToMouth || 0) + (m.handToMidline || 0);
+          for (let chunk = 0; chunk < visitsWithData.length; chunk += maxVisitsPerPage) {
+            const count = Math.min(maxVisitsPerPage, visitsWithData.length - chunk);
+            const sliced = visitsWithData.slice(chunk, chunk + count);
 
-              addField("Global Abduction", m.globalAbduction != null ? String(m.globalAbduction) : null);
-              addField("Global Ext. Rotation", m.globalExternalRotation != null ? String(m.globalExternalRotation) : null);
-              addField("Hand to Neck", m.handToNeck != null ? String(m.handToNeck) : null);
-              addField("Hand to Spine", m.handToSpine != null ? String(m.handToSpine) : null);
-              addField("Hand to Mouth", m.handToMouth != null ? String(m.handToMouth) : null);
-              addField("Hand to Midline", m.handToMidline != null ? String(m.handToMidline) : null);
-              doc.fontSize(9).fillColor(primaryColor).text(`Aggregate Score: ${total}/30`);
-              doc.moveDown(0.3);
+            const metaRows: { labels: string[]; values: (string | null)[][] }[] = [
+              { labels: ["", "Age of Patient"], values: sliced.map(v => [calcAge(patient.dateOfBirth, v.visitDate)]) },
+              { labels: ["", "Surgeon"], values: sliced.map(v => [v.surgeonName]) },
+              { labels: ["", "Visit Type"], values: sliced.map(v => [v.visitType]) },
+              { labels: ["", "Intervention/Note"], values: sliced.map(v => [v.intervention || ""]) },
+            ];
+
+            const hscRows: { labels: string[]; values: (string | number | null)[][] }[] = [
+              ...metaRows,
+              { labels: ["Shoulder", "Abduction"], values: sliced.map(v => [v.hscAmsScore?.shoulderAbduction ?? null]) },
+              { labels: ["", "Adduction"], values: sliced.map(v => [v.hscAmsScore?.shoulderAdduction ?? null]) },
+              { labels: ["", "F Flexion"], values: sliced.map(v => [v.hscAmsScore?.shoulderFFlexion ?? null]) },
+              { labels: ["", "ER"], values: sliced.map(v => [v.hscAmsScore?.shoulderER ?? null]) },
+              { labels: ["", "IR"], values: sliced.map(v => [v.hscAmsScore?.shoulderIR ?? null]) },
+              { labels: ["Elbow", "Flexion"], values: sliced.map(v => [v.hscAmsScore?.elbowFlexion ?? null]) },
+              { labels: ["", "Extension"], values: sliced.map(v => [v.hscAmsScore?.elbowExtension ?? null]) },
+              { labels: ["Forearm", "Supination"], values: sliced.map(v => [v.hscAmsScore?.forearmSupination ?? null]) },
+              { labels: ["", "Pronation"], values: sliced.map(v => [v.hscAmsScore?.forearmPronation ?? null]) },
+              { labels: ["Wrist", "Flexion"], values: sliced.map(v => [v.hscAmsScore?.wristFlexion ?? null]) },
+              { labels: ["", "Extension"], values: sliced.map(v => [v.hscAmsScore?.wristExtension ?? null]) },
+              { labels: ["Finger", "Flexion"], values: sliced.map(v => [v.hscAmsScore?.fingerFlexion ?? null]) },
+              { labels: ["", "Extension"], values: sliced.map(v => [v.hscAmsScore?.fingerExtension ?? null]) },
+              { labels: ["Thumb", "Flexion"], values: sliced.map(v => [v.hscAmsScore?.thumbFlexion ?? null]) },
+              { labels: ["", "Extension"], values: sliced.map(v => [v.hscAmsScore?.thumbExtension ?? null]) },
+              { labels: ["Total Score", ""], values: sliced.map(v => [v.hscAmsScore?.totalScore ?? null]) },
+              { labels: ["Sensation", ""], values: sliced.map(v => [v.hscAmsScore?.sensation ?? null]) },
+              { labels: ["Advise", ""], values: sliced.map(v => [v.hscAmsScore?.advise ?? null]) },
+              { labels: ["Remarks", ""], values: sliced.map(v => [v.hscAmsScore?.remarks ?? null]) },
+            ];
+
+            const hasAnyHsc = sliced.some(v => v.hscAmsScore);
+            if (hasAnyHsc) {
+              drawTable(
+                "HSC AMS Score",
+                [{ header: "", width: 60 }, { header: "", width: 80 }],
+                hscRows.map(r => ({ labels: r.labels, values: r.values.map(v => v[0]) as any[] })),
+                visitsWithData,
+                chunk,
+                count
+              );
             }
 
-            if (visit.clinicalExam) {
-              const e = visit.clinicalExam;
-              if (doc.y > doc.page.height - 200) doc.addPage();
-              doc.fontSize(11).fillColor(secondaryColor).text("Clinical Examination");
-              doc.moveDown(0.2);
+            const malletRows: { labels: string[]; values: (string | number | null)[][] }[] = [
+              ...metaRows,
+              { labels: ["Global Abduction", ""], values: sliced.map(v => [v.malletScore?.globalAbduction ?? null]) },
+              { labels: ["Global Ext. Rotation", ""], values: sliced.map(v => [v.malletScore?.globalExternalRotation ?? null]) },
+              { labels: ["Hand to Neck", ""], values: sliced.map(v => [v.malletScore?.handToNeck ?? null]) },
+              { labels: ["Hand to Spine", ""], values: sliced.map(v => [v.malletScore?.handToSpine ?? null]) },
+              { labels: ["Hand to Mouth", ""], values: sliced.map(v => [v.malletScore?.handToMouth ?? null]) },
+              { labels: ["Hand to Midline", ""], values: sliced.map(v => [v.malletScore?.handToMidline ?? null]) },
+              { labels: ["Aggregate Score", ""], values: sliced.map(v => {
+                if (!v.malletScore) return [null];
+                const m = v.malletScore;
+                const total = (m.globalAbduction || 0) + (m.globalExternalRotation || 0) +
+                  (m.handToNeck || 0) + (m.handToSpine || 0) +
+                  (m.handToMouth || 0) + (m.handToMidline || 0);
+                return [`${total}/30`];
+              })},
+            ];
 
-              addField("Shoulder Subluxation", e.shoulderSubluxation);
-              addField("Passive ER", e.passiveER);
-              addField("Active ER", e.activeER);
-              addField("Putti Sign", e.puttiSign);
-              addField("Elbow FFD", e.elbowFFD);
-              addField("Forearm Supination", e.forearmSupination);
-              addField("Forearm Pronation", e.forearmPronation);
-              addField("Degree of Trumpeting", e.degreeOfTrumpeting);
-              addField("Degree A ABD.", e.degreeAAbd);
-              addField("ABD with PediWRAP", e.abdWithPediWrap);
-              addField("SAS", e.sas);
-              addField("DAC", e.dac);
-              addField("AIRD", e.aird);
-              addField("Wrist DF", e.wristDF);
-              addField("Thumb Abduction", e.thumbAbduction);
-              addField("IR in Abduction", e.irInAbduction);
-              addField("Triceps Strength", e.tricepsStrength);
-              addField("Grip", e.grip);
-              addField("Release", e.release);
-              doc.moveDown(0.3);
+            const hasAnyMallet = sliced.some(v => v.malletScore);
+            if (hasAnyMallet) {
+              drawTable(
+                "Mallet Score",
+                [{ header: "", width: 140 }],
+                malletRows.map(r => ({ labels: [r.labels[0] || r.labels[1] || ""], values: r.values.map(v => v[0]) as any[] })),
+                visitsWithData,
+                chunk,
+                count
+              );
             }
 
-            if (i < visitsWithData.length - 1) {
-              doc.moveTo(40, doc.y).lineTo(doc.page.width - 40, doc.y).strokeColor("#E5E7EB").stroke();
-              doc.moveDown(0.5);
+            const clinicalRows: { labels: string[]; values: (string | number | null)[][] }[] = [
+              ...metaRows,
+              { labels: ["Shoulder Subluxation", ""], values: sliced.map(v => [v.clinicalExam?.shoulderSubluxation ?? null]) },
+              { labels: ["Passive ER", ""], values: sliced.map(v => [v.clinicalExam?.passiveER ?? null]) },
+              { labels: ["Active ER", ""], values: sliced.map(v => [v.clinicalExam?.activeER ?? null]) },
+              { labels: ["Putti Sign", ""], values: sliced.map(v => [v.clinicalExam?.puttiSign ?? null]) },
+              { labels: ["Elbow FFD", ""], values: sliced.map(v => [v.clinicalExam?.elbowFFD ?? null]) },
+              { labels: ["Forearm Supination", ""], values: sliced.map(v => [v.clinicalExam?.forearmSupination ?? null]) },
+              { labels: ["Forearm Pronation", ""], values: sliced.map(v => [v.clinicalExam?.forearmPronation ?? null]) },
+              { labels: ["Degree of Trumpeting", ""], values: sliced.map(v => [v.clinicalExam?.degreeOfTrumpeting ?? null]) },
+              { labels: ["Degree A ABD.", ""], values: sliced.map(v => [v.clinicalExam?.degreeAAbd ?? null]) },
+              { labels: ["ABD with PediWRAP", ""], values: sliced.map(v => [v.clinicalExam?.abdWithPediWrap ?? null]) },
+              { labels: ["SAS", ""], values: sliced.map(v => [v.clinicalExam?.sas ?? null]) },
+              { labels: ["DAC", ""], values: sliced.map(v => [v.clinicalExam?.dac ?? null]) },
+              { labels: ["AIRD", ""], values: sliced.map(v => [v.clinicalExam?.aird ?? null]) },
+              { labels: ["Wrist DF", ""], values: sliced.map(v => [v.clinicalExam?.wristDF ?? null]) },
+              { labels: ["Thumb Abduction", ""], values: sliced.map(v => [v.clinicalExam?.thumbAbduction ?? null]) },
+              { labels: ["IR in Abduction", ""], values: sliced.map(v => [v.clinicalExam?.irInAbduction ?? null]) },
+              { labels: ["Triceps Strength", ""], values: sliced.map(v => [v.clinicalExam?.tricepsStrength ?? null]) },
+              { labels: ["Grip", ""], values: sliced.map(v => [v.clinicalExam?.grip ?? null]) },
+              { labels: ["Release", ""], values: sliced.map(v => [v.clinicalExam?.release ?? null]) },
+            ];
+
+            const hasAnyClinical = sliced.some(v => v.clinicalExam);
+            if (hasAnyClinical) {
+              drawTable(
+                "Clinical Examination",
+                [{ header: "", width: 140 }],
+                clinicalRows.map(r => ({ labels: [r.labels[0] || r.labels[1] || ""], values: r.values.map(v => v[0]) as any[] })),
+                visitsWithData,
+                chunk,
+                count
+              );
             }
           }
         }
