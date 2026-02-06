@@ -42,7 +42,7 @@ export default function SettingsScreen() {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/surgeons"] });
+      queryClient.refetchQueries({ queryKey: ["/api/admin/surgeons"] });
       setNewUsername("");
       setNewPassword("");
       setNewFullName("");
@@ -61,7 +61,7 @@ export default function SettingsScreen() {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/surgeons"] });
+      queryClient.refetchQueries({ queryKey: ["/api/admin/surgeons"] });
       Alert.alert("Success", "Surgeon account removed");
     },
     onError: (error: any) => {
