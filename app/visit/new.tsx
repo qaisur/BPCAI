@@ -104,6 +104,7 @@ export default function NewVisitScreen() {
   );
   const [visitType, setVisitType] = useState("Follow-up");
   const [intervention, setIntervention] = useState("");
+  const [nextFollowUpDate, setNextFollowUpDate] = useState("");
 
   const [activeForm, setActiveForm] = useState<"hscams" | "mallet" | "clinical">("hscams");
 
@@ -192,6 +193,7 @@ export default function NewVisitScreen() {
           visitDate,
           visitType,
           intervention: intervention || null,
+          nextFollowUpDate: nextFollowUpDate || null,
         }
       );
       const visit = await visitRes.json();
@@ -390,6 +392,20 @@ export default function NewVisitScreen() {
               placeholder="e.g. N-2, Surgery details..."
               placeholderTextColor={Colors.textLight}
             />
+          </View>
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Next Follow-up Date</Text>
+            <DatePicker
+              value={nextFollowUpDate}
+              onChange={setNextFollowUpDate}
+              placeholder="Select next follow-up date"
+            />
+            {nextFollowUpDate ? (
+              <Pressable onPress={() => setNextFollowUpDate("")} style={styles.clearDateBtn}>
+                <Ionicons name="close-circle" size={16} color={Colors.textLight} />
+                <Text style={styles.clearDateText}>Clear date</Text>
+              </Pressable>
+            ) : null}
           </View>
         </View>
 
@@ -729,5 +745,16 @@ const styles = StyleSheet.create({
     color: Colors.white,
     fontSize: 16,
     fontFamily: "Inter_600SemiBold",
+  },
+  clearDateBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginTop: 6,
+  },
+  clearDateText: {
+    fontSize: 12,
+    fontFamily: "Inter_400Regular",
+    color: Colors.textLight,
   },
 });
