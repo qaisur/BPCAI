@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   View,
   Text,
@@ -11,25 +11,14 @@ import {
 } from "react-native";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Ionicons } from "@expo/vector-icons";
 import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
+import { DropdownPicker } from "@/components/DropdownPicker";
+import { DatePicker } from "@/components/DatePicker";
 import Colors from "@/constants/colors";
 import { apiRequest, queryClient } from "@/lib/query-client";
 import * as Haptics from "expo-haptics";
-
-const PRESENTATIONS = ["Vertex", "Breech", "Footling"];
-const DELIVERY_TYPES = ["Vaginal", "LSCS", "Forceps assisted", "Vacuum assisted"];
-const DELIVERY_MODES = ["Home", "Hospital"];
-const YES_NO = ["Yes", "No"];
-const INVOLVEMENTS = ["Right", "Left", "Bilateral"];
-const ASSOCIATED = [
-  "# Humerus",
-  "# Clavicle",
-  "Horner syndrome",
-  "Torticollis",
-  "Hemi diaphragm involvement",
-];
 
 function SelectChips({
   options,
@@ -63,9 +52,38 @@ function SelectChips({
   );
 }
 
+const PRESENTATIONS = ["Vertex", "Breech", "Footling", "Hand Prolapse"];
+const DELIVERY_TYPES = ["Vaginal", "LSCS", "Forceps assisted", "Vacuum assisted"];
+const DELIVERY_MODES = ["Home", "Hospital"];
+const YES_NO_OPTIONS = [
+  { label: "Yes", value: "Yes" },
+  { label: "No", value: "No" },
+];
+const INVOLVEMENTS = ["Right", "Left", "Bilateral"];
+const ASSOCIATED = [
+  "# Humerus",
+  "# Clavicle",
+  "Horner syndrome",
+  "Torticollis",
+  "Hemi diaphragm involvement",
+];
+
+function makeNumberOptions(min: number, max: number, step = 1, suffix = "") {
+  const opts: { label: string; value: string }[] = [];
+  for (let i = min; i <= max; i += step) {
+    const val = step < 1 ? i.toFixed(1) : String(i);
+    opts.push({ label: `${val}${suffix}`, value: val });
+  }
+  return opts;
+}
+
 export default function NewPatientScreen() {
   const insets = useSafeAreaInsets();
   const webTopInset = Platform.OS === "web" ? 67 : 0;
+
+  const nextIdQuery = useQuery<{ patientId: string }>({
+    queryKey: ["/api/patients/next-id"],
+  });
 
   const [patientId, setPatientId] = useState("");
   const [childName, setChildName] = useState("");
@@ -91,6 +109,24 @@ export default function NewPatientScreen() {
   const [associatedFeaturesAtBirth, setAssociatedFeaturesAtBirth] = useState("");
   const [involvement, setInvolvement] = useState("");
   const [associatedFeatures, setAssociatedFeatures] = useState<string[]>([]);
+  const [associatedFeaturesNote, setAssociatedFeaturesNote] = useState("");
+
+  useEffect(() => {
+    if (nextIdQuery.data?.patientId && !patientId) {
+      setPatientId(nextIdQuery.data.patientId);
+    }
+  }, [nextIdQuery.data]);
+
+  const gestationalAgeOptions = useMemo(() => makeNumberOptions(16, 60, 1, " wk"), []);
+  const deliveryNumberOptions = useMemo(() => makeNumberOptions(1, 20), []);
+  const birthWeightOptions = useMemo(() => {
+    const opts: { label: string; value: string }[] = [];
+    for (let w = 1.0; w <= 7.0; w += 0.1) {
+      const val = w.toFixed(1);
+      opts.push({ label: `${val} kg`, value: val });
+    }
+    return opts;
+  }, []);
 
   const mutation = useMutation({
     mutationFn: async (data: any) => {
@@ -143,6 +179,7 @@ export default function NewPatientScreen() {
       associatedFeaturesAtBirth: associatedFeaturesAtBirth || null,
       involvement: involvement || null,
       associatedFeatures: associatedFeatures.length > 0 ? associatedFeatures.join(", ") : null,
+      associatedFeaturesNote: associatedFeaturesNote || null,
     });
   }
 
@@ -169,13 +206,12 @@ export default function NewPatientScreen() {
 
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Patient ID *</Text>
-            <TextInput
-              style={styles.textInput}
-              value={patientId}
-              onChangeText={setPatientId}
-              placeholder="e.g. BPC-001"
-              placeholderTextColor={Colors.textLight}
-            />
+            <View style={styles.readOnlyRow}>
+              <Text style={styles.readOnlyText}>
+                {patientId || "Loading..."}
+              </Text>
+              <Ionicons name="lock-closed" size={14} color={Colors.textLight} />
+            </View>
           </View>
 
           <View style={styles.inputGroup}>
@@ -191,21 +227,18 @@ export default function NewPatientScreen() {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Date of Birth * (YYYY-MM-DD)</Text>
-            <TextInput
-              style={styles.textInput}
+            <Text style={styles.label}>Date of Birth *</Text>
+            <DatePicker
               value={dateOfBirth}
-              onChangeText={setDateOfBirth}
-              placeholder="2025-01-15"
-              placeholderTextColor={Colors.textLight}
-              keyboardType="numbers-and-punctuation"
+              onChange={setDateOfBirth}
+              placeholder="Select date of birth"
             />
           </View>
 
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Gender</Text>
             <SelectChips
-              options={["Male", "Female"]}
+              options={["Male", "Female", "Other"]}
               selected={gender}
               onSelect={setGender}
             />
@@ -264,26 +297,22 @@ export default function NewPatientScreen() {
           <Text style={styles.sectionTitle}>Birth History</Text>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Gestational Age at Delivery (wk)</Text>
-            <TextInput
-              style={styles.textInput}
-              value={gestationalAge}
-              onChangeText={setGestationalAge}
-              placeholder="e.g. 38"
-              placeholderTextColor={Colors.textLight}
-              keyboardType="numeric"
+            <Text style={styles.label}>Gestational Age at Delivery</Text>
+            <DropdownPicker
+              options={gestationalAgeOptions}
+              selectedValue={gestationalAge}
+              onSelect={setGestationalAge}
+              placeholder="Select weeks (16-60)"
             />
           </View>
 
           <View style={styles.inputGroup}>
             <Text style={styles.label}>No. of Delivery</Text>
-            <TextInput
-              style={styles.textInput}
-              value={numberOfDelivery}
-              onChangeText={setNumberOfDelivery}
-              placeholder="e.g. 1"
-              placeholderTextColor={Colors.textLight}
-              keyboardType="numeric"
+            <DropdownPicker
+              options={deliveryNumberOptions}
+              selectedValue={numberOfDelivery}
+              onSelect={setNumberOfDelivery}
+              placeholder="Select (1-20)"
             />
           </View>
 
@@ -298,10 +327,11 @@ export default function NewPatientScreen() {
 
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Gestational Diabetes</Text>
-            <SelectChips
-              options={YES_NO}
-              selected={gestationalDiabetes}
+            <DropdownPicker
+              options={YES_NO_OPTIONS}
+              selectedValue={gestationalDiabetes}
               onSelect={setGestationalDiabetes}
+              placeholder="Select Yes/No"
             />
           </View>
 
@@ -324,57 +354,56 @@ export default function NewPatientScreen() {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Birth Weight (kg)</Text>
-            <TextInput
-              style={styles.textInput}
-              value={birthWeight}
-              onChangeText={setBirthWeight}
-              placeholder="e.g. 3.5"
-              placeholderTextColor={Colors.textLight}
-              keyboardType="decimal-pad"
+            <Text style={styles.label}>Birth Weight</Text>
+            <DropdownPicker
+              options={birthWeightOptions}
+              selectedValue={birthWeight}
+              onSelect={setBirthWeight}
+              placeholder="Select weight (1.0-7.0 kg)"
             />
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Birth Weight of Siblings (kg)</Text>
-            <TextInput
-              style={styles.textInput}
-              value={birthWeightOfSiblings}
-              onChangeText={setBirthWeightOfSiblings}
-              placeholder="e.g. 3.2"
-              placeholderTextColor={Colors.textLight}
-              keyboardType="decimal-pad"
+            <Text style={styles.label}>Birth Weight of Siblings</Text>
+            <DropdownPicker
+              options={birthWeightOptions}
+              selectedValue={birthWeightOfSiblings}
+              onSelect={setBirthWeightOfSiblings}
+              placeholder="Select weight (1.0-7.0 kg)"
             />
           </View>
 
           <View style={styles.inputGroup}>
             <Text style={styles.label}>H/O Shoulder Dystocia</Text>
-            <SelectChips
-              options={YES_NO}
-              selected={shoulderDystocia}
+            <DropdownPicker
+              options={YES_NO_OPTIONS}
+              selectedValue={shoulderDystocia}
               onSelect={setShoulderDystocia}
+              placeholder="Select Yes/No"
             />
           </View>
 
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Difficult Delivery</Text>
-            <SelectChips
-              options={YES_NO}
-              selected={difficultDelivery}
+            <DropdownPicker
+              options={YES_NO_OPTIONS}
+              selectedValue={difficultDelivery}
               onSelect={setDifficultDelivery}
+              placeholder="Select Yes/No"
             />
           </View>
         </View>
 
         <View style={styles.sectionCard}>
-          <Text style={styles.sectionTitle}>Family History</Text>
+          <Text style={styles.sectionTitle}>Family & Clinical History</Text>
 
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Sibling Affection</Text>
-            <SelectChips
-              options={YES_NO}
-              selected={siblingAffection}
+            <DropdownPicker
+              options={YES_NO_OPTIONS}
+              selectedValue={siblingAffection}
               onSelect={setSiblingAffection}
+              placeholder="Select Yes/No"
             />
           </View>
 
@@ -405,6 +434,18 @@ export default function NewPatientScreen() {
               selected={associatedFeatures}
               onSelect={handleAssociatedFeatureToggle}
               multi
+            />
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Associated Features Note</Text>
+            <TextInput
+              style={[styles.textInput, { height: 60 }]}
+              value={associatedFeaturesNote}
+              onChangeText={setAssociatedFeaturesNote}
+              placeholder="Additional notes..."
+              placeholderTextColor={Colors.textLight}
+              multiline
             />
           </View>
         </View>
@@ -494,6 +535,22 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_400Regular",
     color: Colors.text,
     backgroundColor: Colors.background,
+  },
+  readOnlyRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 8,
+    height: 44,
+    paddingHorizontal: 12,
+    backgroundColor: "#F3F4F6",
+  },
+  readOnlyText: {
+    fontSize: 15,
+    fontFamily: "Inter_600SemiBold",
+    color: Colors.secondary,
   },
   chipRow: {
     flexDirection: "row",

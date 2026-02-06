@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   View,
   Text,
@@ -14,21 +14,23 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useMutation } from "@tanstack/react-query";
 import { Ionicons } from "@expo/vector-icons";
 import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
+import { DropdownPicker } from "@/components/DropdownPicker";
+import { DatePicker } from "@/components/DatePicker";
 import Colors from "@/constants/colors";
 import { apiRequest, queryClient } from "@/lib/query-client";
 import * as Haptics from "expo-haptics";
 
-function ScoreInput({
+function ScoreDropdownRow({
   label,
   value,
-  onChangeText,
-  keyboardType = "numeric",
-  placeholder = "0-7",
+  onSelect,
+  options,
+  placeholder = "Select",
 }: {
   label: string;
   value: string;
-  onChangeText: (t: string) => void;
-  keyboardType?: "numeric" | "default";
+  onSelect: (v: string) => void;
+  options: { label: string; value: string }[];
   placeholder?: string;
 }) {
   return (
@@ -36,14 +38,14 @@ function ScoreInput({
       <Text style={styles.scoreLabel} numberOfLines={1}>
         {label}
       </Text>
-      <TextInput
-        style={styles.scoreInput}
-        value={value}
-        onChangeText={onChangeText}
-        keyboardType={keyboardType as any}
-        placeholder={placeholder}
-        placeholderTextColor={Colors.textLight}
-      />
+      <View style={styles.scoreDropdown}>
+        <DropdownPicker
+          options={options}
+          selectedValue={value}
+          onSelect={onSelect}
+          placeholder={placeholder}
+        />
+      </View>
     </View>
   );
 }
@@ -83,6 +85,15 @@ function SectionHeader({ title }: { title: string }) {
   );
 }
 
+function makeOptions(min: number, max: number, step = 1, suffix = "") {
+  const opts: { label: string; value: string }[] = [];
+  for (let i = min; i <= max; i += step) {
+    const val = String(i);
+    opts.push({ label: `${val}${suffix}`, value: val });
+  }
+  return opts;
+}
+
 export default function NewVisitScreen() {
   const { patientId } = useLocalSearchParams<{ patientId: string }>();
   const insets = useSafeAreaInsets();
@@ -120,13 +131,6 @@ export default function NewVisitScreen() {
   const [handToNeck, setHandToNeck] = useState("");
   const [handToSpine, setHandToSpine] = useState("");
   const [handToMouth, setHandToMouth] = useState("");
-  const [malletGA, setMalletGA] = useState("");
-  const [malletGER, setMalletGER] = useState("");
-  const [malletHTN, setMalletHTN] = useState("");
-  const [malletHTS, setMalletHTS] = useState("");
-  const [malletHTM, setMalletHTM] = useState("");
-  const [malletIR, setMalletIR] = useState("");
-  const [malletAMS, setMalletAMS] = useState("");
 
   const [shoulderSubluxation, setShoulderSubluxation] = useState("");
   const [passiveER, setPassiveER] = useState("");
@@ -147,6 +151,36 @@ export default function NewVisitScreen() {
   const [tricepsStrength, setTricepsStrength] = useState("");
   const [grip, setGrip] = useState("");
   const [release, setRelease] = useState("");
+
+  const hscAmsOptions = useMemo(() => makeOptions(0, 7), []);
+  const malletOptions = useMemo(() => [
+    { label: "I (1)", value: "1" },
+    { label: "II (2)", value: "2" },
+    { label: "III (3)", value: "3" },
+    { label: "IV (4)", value: "4" },
+    { label: "V (5)", value: "5" },
+  ], []);
+
+  const yesNoOptions = useMemo(() => [
+    { label: "Yes", value: "Yes" },
+    { label: "No", value: "No" },
+  ], []);
+
+  const erOptions = useMemo(() => {
+    const opts: { label: string; value: string }[] = [];
+    for (let i = -90; i <= 90; i += 5) {
+      opts.push({ label: `${i >= 0 ? "+" : ""}${i}\u00B0`, value: String(i) });
+    }
+    return opts;
+  }, []);
+
+  const angleOptions0to180 = useMemo(() => {
+    const opts: { label: string; value: string }[] = [];
+    for (let i = 0; i <= 180; i += 5) {
+      opts.push({ label: `${i}\u00B0`, value: String(i) });
+    }
+    return opts;
+  }, []);
 
   const visitMutation = useMutation({
     mutationFn: async () => {
@@ -215,13 +249,6 @@ export default function NewVisitScreen() {
             (parseInt(handToNeck) || 0) +
             (parseInt(handToSpine) || 0) +
             (parseInt(handToMouth) || 0),
-          ga: malletGA || null,
-          ger: malletGER || null,
-          htn: malletHTN || null,
-          hts: malletHTS || null,
-          htm: malletHTM || null,
-          ir: malletIR || null,
-          ams: malletAMS || null,
         });
       }
 
@@ -318,14 +345,11 @@ export default function NewVisitScreen() {
         <View style={styles.sectionCard}>
           <Text style={styles.sectionTitle}>Visit Details</Text>
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Visit Date (YYYY-MM-DD)</Text>
-            <TextInput
-              style={styles.textInput}
+            <Text style={styles.label}>Visit Date</Text>
+            <DatePicker
               value={visitDate}
-              onChangeText={setVisitDate}
-              placeholder="2026-02-06"
-              placeholderTextColor={Colors.textLight}
-              keyboardType="numbers-and-punctuation"
+              onChange={setVisitDate}
+              placeholder="Select visit date"
             />
           </View>
           <View style={styles.inputGroup}>
@@ -353,7 +377,7 @@ export default function NewVisitScreen() {
             </View>
           </View>
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Intervention</Text>
+            <Text style={styles.label}>Intervention/Note</Text>
             <TextInput
               style={styles.textInput}
               value={intervention}
@@ -396,31 +420,31 @@ export default function NewVisitScreen() {
             </Text>
 
             <SectionHeader title="Shoulder" />
-            <ScoreInput label="Abduction" value={shoulderAbduction} onChangeText={setShoulderAbduction} />
-            <ScoreInput label="Adduction" value={shoulderAdduction} onChangeText={setShoulderAdduction} />
-            <ScoreInput label="F Flexion" value={shoulderFFlexion} onChangeText={setShoulderFFlexion} />
-            <ScoreInput label="ER" value={shoulderER} onChangeText={setShoulderER} />
-            <ScoreInput label="IR" value={shoulderIR} onChangeText={setShoulderIR} />
+            <ScoreDropdownRow label="Abduction" value={shoulderAbduction} onSelect={setShoulderAbduction} options={hscAmsOptions} placeholder="0-7" />
+            <ScoreDropdownRow label="Adduction" value={shoulderAdduction} onSelect={setShoulderAdduction} options={hscAmsOptions} placeholder="0-7" />
+            <ScoreDropdownRow label="F Flexion" value={shoulderFFlexion} onSelect={setShoulderFFlexion} options={hscAmsOptions} placeholder="0-7" />
+            <ScoreDropdownRow label="ER" value={shoulderER} onSelect={setShoulderER} options={hscAmsOptions} placeholder="0-7" />
+            <ScoreDropdownRow label="IR" value={shoulderIR} onSelect={setShoulderIR} options={hscAmsOptions} placeholder="0-7" />
 
             <SectionHeader title="Elbow" />
-            <ScoreInput label="Flexion" value={elbowFlexion} onChangeText={setElbowFlexion} />
-            <ScoreInput label="Extension" value={elbowExtension} onChangeText={setElbowExtension} />
+            <ScoreDropdownRow label="Flexion" value={elbowFlexion} onSelect={setElbowFlexion} options={hscAmsOptions} placeholder="0-7" />
+            <ScoreDropdownRow label="Extension" value={elbowExtension} onSelect={setElbowExtension} options={hscAmsOptions} placeholder="0-7" />
 
             <SectionHeader title="Forearm" />
-            <ScoreInput label="Supination" value={forearmSupination} onChangeText={setForearmSupination} />
-            <ScoreInput label="Pronation" value={forearmPronation} onChangeText={setForearmPronation} />
+            <ScoreDropdownRow label="Supination" value={forearmSupination} onSelect={setForearmSupination} options={hscAmsOptions} placeholder="0-7" />
+            <ScoreDropdownRow label="Pronation" value={forearmPronation} onSelect={setForearmPronation} options={hscAmsOptions} placeholder="0-7" />
 
             <SectionHeader title="Wrist" />
-            <ScoreInput label="Flexion" value={wristFlexion} onChangeText={setWristFlexion} />
-            <ScoreInput label="Extension" value={wristExtension} onChangeText={setWristExtension} />
+            <ScoreDropdownRow label="Flexion" value={wristFlexion} onSelect={setWristFlexion} options={hscAmsOptions} placeholder="0-7" />
+            <ScoreDropdownRow label="Extension" value={wristExtension} onSelect={setWristExtension} options={hscAmsOptions} placeholder="0-7" />
 
             <SectionHeader title="Finger" />
-            <ScoreInput label="Flexion" value={fingerFlexion} onChangeText={setFingerFlexion} />
-            <ScoreInput label="Extension" value={fingerExtension} onChangeText={setFingerExtension} />
+            <ScoreDropdownRow label="Flexion" value={fingerFlexion} onSelect={setFingerFlexion} options={hscAmsOptions} placeholder="0-7" />
+            <ScoreDropdownRow label="Extension" value={fingerExtension} onSelect={setFingerExtension} options={hscAmsOptions} placeholder="0-7" />
 
             <SectionHeader title="Thumb" />
-            <ScoreInput label="Flexion" value={thumbFlexion} onChangeText={setThumbFlexion} />
-            <ScoreInput label="Extension" value={thumbExtension} onChangeText={setThumbExtension} />
+            <ScoreDropdownRow label="Flexion" value={thumbFlexion} onSelect={setThumbFlexion} options={hscAmsOptions} placeholder="0-7" />
+            <ScoreDropdownRow label="Extension" value={thumbExtension} onSelect={setThumbExtension} options={hscAmsOptions} placeholder="0-7" />
 
             <View style={styles.totalRow}>
               <Text style={styles.totalLabel}>Total Score</Text>
@@ -435,30 +459,21 @@ export default function NewVisitScreen() {
 
         {activeForm === "mallet" && (
           <View style={styles.sectionCard}>
-            <Text style={styles.sectionTitle}>Mallet Score (Grade I-V = 1-5)</Text>
+            <Text style={styles.sectionTitle}>Mallet Score (Grade I-V)</Text>
             <Text style={styles.scaleInfo}>
               I(1)=No function, II(2)={"<"}30, III(3)=30-90, IV(4)={">"}90, V(5)=Normal
             </Text>
 
-            <ScoreInput label="Global Abduction" value={globalAbduction} onChangeText={setGlobalAbduction} placeholder="1-5" />
-            <ScoreInput label="Global Ext. Rotation" value={globalExtRotation} onChangeText={setGlobalExtRotation} placeholder="1-5" />
-            <ScoreInput label="Hand to Neck" value={handToNeck} onChangeText={setHandToNeck} placeholder="1-5" />
-            <ScoreInput label="Hand to Spine" value={handToSpine} onChangeText={setHandToSpine} placeholder="1-5" />
-            <ScoreInput label="Hand to Mouth" value={handToMouth} onChangeText={setHandToMouth} placeholder="1-5" />
+            <ScoreDropdownRow label="Global Abduction" value={globalAbduction} onSelect={setGlobalAbduction} options={malletOptions} placeholder="I-V" />
+            <ScoreDropdownRow label="Global Ext. Rotation" value={globalExtRotation} onSelect={setGlobalExtRotation} options={malletOptions} placeholder="I-V" />
+            <ScoreDropdownRow label="Hand to Neck" value={handToNeck} onSelect={setHandToNeck} options={malletOptions} placeholder="I-V" />
+            <ScoreDropdownRow label="Hand to Spine" value={handToSpine} onSelect={setHandToSpine} options={malletOptions} placeholder="I-V" />
+            <ScoreDropdownRow label="Hand to Mouth" value={handToMouth} onSelect={setHandToMouth} options={malletOptions} placeholder="I-V" />
 
             <View style={styles.totalRow}>
               <Text style={styles.totalLabel}>Aggregate Score</Text>
-              <Text style={styles.totalValue}>{totalMallet}/30</Text>
+              <Text style={styles.totalValue}>{totalMallet}/25</Text>
             </View>
-
-            <SectionHeader title="Additional Fields" />
-            <TextFieldRow label="GA" value={malletGA} onChangeText={setMalletGA} />
-            <TextFieldRow label="GER" value={malletGER} onChangeText={setMalletGER} />
-            <TextFieldRow label="HTN" value={malletHTN} onChangeText={setMalletHTN} />
-            <TextFieldRow label="HTS" value={malletHTS} onChangeText={setMalletHTS} />
-            <TextFieldRow label="HTM" value={malletHTM} onChangeText={setMalletHTM} />
-            <TextFieldRow label="IR" value={malletIR} onChangeText={setMalletIR} />
-            <TextFieldRow label="AMS" value={malletAMS} onChangeText={setMalletAMS} />
           </View>
         )}
 
@@ -466,22 +481,22 @@ export default function NewVisitScreen() {
           <View style={styles.sectionCard}>
             <Text style={styles.sectionTitle}>Clinical Examination</Text>
 
-            <TextFieldRow label="Shoulder Subluxation" value={shoulderSubluxation} onChangeText={setShoulderSubluxation} placeholder="Yes/No" />
-            <TextFieldRow label="Passive ER" value={passiveER} onChangeText={setPassiveER} placeholder="e.g. 0, -10" />
-            <TextFieldRow label="Active ER" value={activeERExam} onChangeText={setActiveERExam} placeholder="e.g. -30, -40" />
-            <TextFieldRow label="Putti Sign" value={puttiSign} onChangeText={setPuttiSign} />
-            <TextFieldRow label="Elbow FFD" value={elbowFFD} onChangeText={setElbowFFD} placeholder="e.g. 10" />
-            <TextFieldRow label="Forearm Supination" value={forearmSupExam} onChangeText={setForearmSupExam} placeholder="e.g. None" />
-            <TextFieldRow label="Forearm Pronation" value={forearmProExam} onChangeText={setForearmProExam} placeholder="e.g. >MP, F" />
-            <TextFieldRow label="Degree of Trumpeting" value={degreeOfTrumpeting} onChangeText={setDegreeOfTrumpeting} placeholder="e.g. 0" />
-            <TextFieldRow label="Degree A ABD." value={degreeAAbd} onChangeText={setDegreeAAbd} placeholder="e.g. 30" />
-            <TextFieldRow label="ABD with PediWRAP" value={abdWithPediWrap} onChangeText={setAbdWithPediWrap} placeholder="e.g. 0" />
-            <TextFieldRow label="SAS" value={sas} onChangeText={setSas} placeholder="Yes/No" />
-            <TextFieldRow label="DAC" value={dac} onChangeText={setDac} placeholder="Yes/No" />
-            <TextFieldRow label="AIRD" value={aird} onChangeText={setAird} placeholder="e.g. 0" />
+            <ScoreDropdownRow label="Shoulder Subluxation" value={shoulderSubluxation} onSelect={setShoulderSubluxation} options={yesNoOptions} placeholder="Yes/No" />
+            <ScoreDropdownRow label="Passive ER" value={passiveER} onSelect={setPassiveER} options={erOptions} placeholder="-90 to +90" />
+            <ScoreDropdownRow label="Active ER" value={activeERExam} onSelect={setActiveERExam} options={erOptions} placeholder="-90 to +90" />
+            <ScoreDropdownRow label="Putti Sign" value={puttiSign} onSelect={setPuttiSign} options={yesNoOptions} placeholder="Yes/No" />
+            <ScoreDropdownRow label="Elbow FFD" value={elbowFFD} onSelect={setElbowFFD} options={angleOptions0to180} placeholder="0-180" />
+            <ScoreDropdownRow label="Forearm Supination" value={forearmSupExam} onSelect={setForearmSupExam} options={angleOptions0to180} placeholder="0-180" />
+            <ScoreDropdownRow label="Forearm Pronation" value={forearmProExam} onSelect={setForearmProExam} options={angleOptions0to180} placeholder="0-180" />
+            <ScoreDropdownRow label="Trumpeting" value={degreeOfTrumpeting} onSelect={setDegreeOfTrumpeting} options={angleOptions0to180} placeholder="0-180" />
+            <ScoreDropdownRow label="Degree A ABD." value={degreeAAbd} onSelect={setDegreeAAbd} options={angleOptions0to180} placeholder="0-180" />
+            <ScoreDropdownRow label="ABD PediWRAP" value={abdWithPediWrap} onSelect={setAbdWithPediWrap} options={angleOptions0to180} placeholder="0-180" />
+            <TextFieldRow label="SAS" value={sas} onChangeText={setSas} placeholder="Enter value" />
+            <TextFieldRow label="DAC" value={dac} onChangeText={setDac} placeholder="Enter value" />
+            <ScoreDropdownRow label="AIRD" value={aird} onSelect={setAird} options={angleOptions0to180} placeholder="0-180" />
             <TextFieldRow label="Wrist DF" value={wristDF} onChangeText={setWristDF} placeholder="e.g. weak" />
             <TextFieldRow label="Thumb Abduction" value={thumbAbduction} onChangeText={setThumbAbduction} placeholder="e.g. weak" />
-            <TextFieldRow label="IR in Abduction" value={irInAbduction} onChangeText={setIrInAbduction} placeholder="e.g. 0" />
+            <ScoreDropdownRow label="IR in Abduction" value={irInAbduction} onSelect={setIrInAbduction} options={angleOptions0to180} placeholder="0-180" />
             <TextFieldRow label="Triceps Strength" value={tricepsStrength} onChangeText={setTricepsStrength} placeholder="e.g. N" />
             <TextFieldRow label="Grip" value={grip} onChangeText={setGrip} />
             <TextFieldRow label="Release" value={release} onChangeText={setRelease} />
@@ -621,8 +636,8 @@ const styles = StyleSheet.create({
     borderColor: Colors.borderLight,
   },
   formTabActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
+    backgroundColor: Colors.secondary,
+    borderColor: Colors.secondary,
   },
   formTabText: {
     fontSize: 13,
@@ -632,24 +647,11 @@ const styles = StyleSheet.create({
   formTabTextActive: {
     color: Colors.white,
   },
-  sectionHeader: {
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.borderLight,
-    marginBottom: 4,
-    marginTop: 8,
-  },
-  sectionHeaderText: {
-    fontSize: 14,
-    fontFamily: "Inter_700Bold",
-    color: Colors.secondary,
-  },
   scoreRow: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 6,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.borderLight,
+    marginBottom: 10,
+    gap: 8,
   },
   scoreLabel: {
     flex: 1,
@@ -657,39 +659,54 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_500Medium",
     color: Colors.text,
   },
+  scoreDropdown: {
+    width: 130,
+  },
   scoreInput: {
-    width: 100,
-    height: 38,
+    width: 130,
     borderWidth: 1,
     borderColor: Colors.border,
-    borderRadius: 6,
+    borderRadius: 8,
+    height: 40,
     paddingHorizontal: 10,
-    fontSize: 15,
-    fontFamily: "Inter_500Medium",
+    fontSize: 14,
+    fontFamily: "Inter_400Regular",
     color: Colors.text,
-    textAlign: "center",
     backgroundColor: Colors.background,
+    textAlign: "center" as const,
+  },
+  sectionHeader: {
+    marginTop: 12,
+    marginBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.borderLight,
+    paddingBottom: 6,
+  },
+  sectionHeaderText: {
+    fontSize: 13,
+    fontFamily: "Inter_700Bold",
+    color: Colors.secondary,
+    textTransform: "uppercase" as const,
+    letterSpacing: 0.5,
   },
   totalRow: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 10,
-    marginTop: 8,
+    justifyContent: "space-between",
+    marginTop: 12,
+    paddingTop: 12,
     borderTopWidth: 2,
-    borderTopColor: Colors.secondary,
+    borderTopColor: Colors.primary,
   },
   totalLabel: {
-    flex: 1,
-    fontSize: 15,
-    fontFamily: "Inter_700Bold",
-    color: Colors.secondary,
-  },
-  totalValue: {
-    fontSize: 18,
+    fontSize: 16,
     fontFamily: "Inter_700Bold",
     color: Colors.primary,
-    minWidth: 100,
-    textAlign: "center",
+  },
+  totalValue: {
+    fontSize: 20,
+    fontFamily: "Inter_700Bold",
+    color: Colors.primary,
   },
   saveButton: {
     flexDirection: "row",
