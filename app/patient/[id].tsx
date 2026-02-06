@@ -215,7 +215,7 @@ export default function PatientDetailScreen() {
                   </Text>
                   {visit.intervention && (
                     <Text style={styles.visitIntervention}>
-                      Intervention: {visit.intervention}
+                      Intervention/Note: {visit.intervention}
                     </Text>
                   )}
                 </View>
@@ -254,7 +254,7 @@ export default function PatientDetailScreen() {
         <View style={tableStyles.table}>
           <DataTableRow label="Date" values={dates} isHeader />
           <DataTableRow label="Age of Pt" values={ages} />
-          <DataTableRow label="Intervention" values={interventions} />
+          <DataTableRow label="Intervention/Note" values={interventions} />
           <DataTableSubRow label="Shoulder" subLabel="Abduction" values={scores.map((s: any) => String(s.shoulderAbduction ?? "-"))} />
           <DataTableSubRow label="" subLabel="Adduction" values={scores.map((s: any) => String(s.shoulderAdduction ?? "-"))} />
           <DataTableSubRow label="" subLabel="F Flexion" values={scores.map((s: any) => String(s.shoulderFFlexion ?? "-"))} />
@@ -310,7 +310,7 @@ export default function PatientDetailScreen() {
         <View style={tableStyles.table}>
           <DataTableRow label="Date" values={dates} isHeader />
           <DataTableRow label="Age of Patient" values={ages} />
-          <DataTableRow label="Intervention" values={interventions} />
+          <DataTableRow label="Intervention/Note" values={interventions} />
           <DataTableRow label="GA" values={scores.map((s: any) => s.ga || "-")} />
           <DataTableRow label="GER" values={scores.map((s: any) => s.ger || "-")} />
           <DataTableRow label="HTN" values={scores.map((s: any) => s.htn || "-")} />
@@ -327,7 +327,7 @@ export default function PatientDetailScreen() {
                 (s.handToNeck || 0) +
                 (s.handToSpine || 0) +
                 (s.handToMouth || 0);
-              return `${total}/30`;
+              return `${total}/25`;
             })}
             isHeader
           />
