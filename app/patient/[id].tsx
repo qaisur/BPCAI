@@ -15,7 +15,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useQuery } from "@tanstack/react-query";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Linking from "expo-linking";
-import * as FileSystem from "expo-file-system";
 import * as Sharing from "expo-sharing";
 import Colors from "@/constants/colors";
 import { getApiUrl } from "@/lib/query-client";
@@ -466,7 +465,9 @@ export default function PatientDetailScreen() {
                 document.body.removeChild(a);
                 URL.revokeObjectURL(blobUrl);
               } else {
-                const fileUri = `${FileSystem.cacheDirectory}${patient?.patientId || "patient"}_record.pdf`;
+                const FileSystem = require("expo-file-system/legacy");
+                const fileName = `${patient?.patientId || "patient"}_record.pdf`;
+                const fileUri = `${FileSystem.cacheDirectory}${fileName}`;
                 const downloadResult = await FileSystem.downloadAsync(url, fileUri);
                 if (downloadResult.status !== 200) throw new Error("Failed to download PDF");
                 const canShare = await Sharing.isAvailableAsync();
@@ -476,7 +477,7 @@ export default function PatientDetailScreen() {
                     dialogTitle: "Patient Record PDF",
                   });
                 } else {
-                  Alert.alert("PDF Saved", `PDF saved to: ${fileUri}`);
+                  Alert.alert("PDF Saved", `PDF downloaded successfully`);
                 }
               }
             } catch (error: any) {
