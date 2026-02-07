@@ -1,5 +1,7 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "node:http";
+import path from "node:path";
+import fs from "node:fs";
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
 import bcrypt from "bcryptjs";
@@ -515,9 +517,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const secondaryColor = "#1B3A6B";
         const pageWidth = doc.page.width - 80;
 
-        doc.fontSize(20).fillColor(primaryColor).text("Brachial Plexus Clinic", { align: "center" });
-        doc.fontSize(10).fillColor(secondaryColor).text("Hope in Every Touch", { align: "center" });
-        doc.moveDown(0.5);
+        const logoPath = path.resolve("assets/images/clinic-logo.png");
+        const logoSize = 50;
+        const headerStartY = doc.y;
+        if (fs.existsSync(logoPath)) {
+          doc.image(logoPath, 40, headerStartY, { width: logoSize, height: logoSize });
+        }
+        const textX = 40 + logoSize + 10;
+        const textWidth = doc.page.width - 80 - logoSize - 10;
+        doc.fontSize(20).fillColor(primaryColor).text("Brachial Plexus Clinic", textX, headerStartY + 5, { width: textWidth });
+        doc.fontSize(10).fillColor(secondaryColor).text("Hope in Every Touch", textX, headerStartY + 28, { width: textWidth });
+        doc.y = headerStartY + logoSize + 8;
         doc.moveTo(40, doc.y).lineTo(doc.page.width - 40, doc.y).strokeColor("#E5E7EB").stroke();
         doc.moveDown(0.5);
 

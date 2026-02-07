@@ -105,6 +105,7 @@ export default function NewVisitScreen() {
   const [visitType, setVisitType] = useState("Follow-up");
   const [intervention, setIntervention] = useState("");
   const [nextFollowUpDate, setNextFollowUpDate] = useState("");
+  const [followUpWarning, setFollowUpWarning] = useState(false);
 
   const [activeForm, setActiveForm] = useState<"hscams" | "mallet" | "clinical">("hscams");
 
@@ -397,11 +398,24 @@ export default function NewVisitScreen() {
             <Text style={styles.label}>Next Follow-up Date</Text>
             <DatePicker
               value={nextFollowUpDate}
-              onChange={setNextFollowUpDate}
+              onChange={(date: string) => {
+                setNextFollowUpDate(date);
+                if (date) {
+                  const today = new Date();
+                  today.setHours(0, 0, 0, 0);
+                  const selected = new Date(date + "T00:00:00");
+                  if (selected < today) {
+                    setFollowUpWarning(true);
+                    setTimeout(() => setFollowUpWarning(false), 4000);
+                  } else {
+                    setFollowUpWarning(false);
+                  }
+                }
+              }}
               placeholder="Select next follow-up date"
             />
             {nextFollowUpDate ? (
-              <Pressable onPress={() => setNextFollowUpDate("")} style={styles.clearDateBtn}>
+              <Pressable onPress={() => { setNextFollowUpDate(""); setFollowUpWarning(false); }} style={styles.clearDateBtn}>
                 <Ionicons name="close-circle" size={16} color={Colors.textLight} />
                 <Text style={styles.clearDateText}>Clear date</Text>
               </Pressable>
@@ -544,6 +558,17 @@ export default function NewVisitScreen() {
           )}
         </Pressable>
       </KeyboardAwareScrollViewCompat>
+      {followUpWarning && (
+        <View style={styles.floatingWarning}>
+          <Ionicons name="warning" size={18} color="#92400e" />
+          <Text style={styles.floatingWarningText}>
+            The follow-up date is in the past. Please check the date again.
+          </Text>
+          <Pressable onPress={() => setFollowUpWarning(false)}>
+            <Ionicons name="close" size={18} color="#92400e" />
+          </Pressable>
+        </View>
+      )}
     </View>
   );
 }
@@ -756,5 +781,31 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: "Inter_400Regular",
     color: Colors.textLight,
+  },
+  floatingWarning: {
+    position: "absolute" as const,
+    bottom: 100,
+    left: 20,
+    right: 20,
+    backgroundColor: "#FFFBEB",
+    borderWidth: 1,
+    borderColor: "#F59E0B",
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  floatingWarningText: {
+    flex: 1,
+    fontSize: 13,
+    fontFamily: "Inter_600SemiBold",
+    color: "#92400e",
   },
 });
