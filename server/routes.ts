@@ -49,6 +49,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     })
   );
 
+  async function seedAdminAccount() {
+    try {
+      const existing = await storage.getSurgeonByUsername("qaisurR");
+      if (!existing) {
+        const hashedPassword = await bcrypt.hash("6Pcl1n1c888", 10);
+        await storage.createSurgeon({
+          username: "qaisurR",
+          password: hashedPassword,
+          fullName: "Dr. Qaisur Rabbi",
+          isAdmin: true,
+          isActive: true,
+        });
+        console.log("Admin account seeded successfully");
+      }
+    } catch (error) {
+      console.error("Error seeding admin account:", error);
+    }
+  }
+
+  await seedAdminAccount();
+
   app.post("/api/admin/create-surgeon", requireAuth, async (req: Request, res: Response) => {
     try {
       const admin = await storage.getSurgeon(req.session.surgeonId!);
