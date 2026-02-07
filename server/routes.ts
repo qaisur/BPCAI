@@ -517,7 +517,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const secondaryColor = "#1B3A6B";
         const pageWidth = doc.page.width - 80;
 
-        const logoPath = path.resolve("assets/images/clinic-logo.png");
+        const logoPath = path.resolve("assets/images/clinic-logo-small.png");
         const logoSize = 50;
         const headerStartY = doc.y;
         if (fs.existsSync(logoPath)) {

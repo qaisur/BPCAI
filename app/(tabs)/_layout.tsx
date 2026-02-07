@@ -2,7 +2,7 @@ import { isLiquidGlassAvailable } from "expo-glass-effect";
 import { Tabs, router } from "expo-router";
 import { NativeTabs, Icon, Label } from "expo-router/unstable-native-tabs";
 import { BlurView } from "expo-blur";
-import { Platform, StyleSheet, useColorScheme, View, ActivityIndicator } from "react-native";
+import { Platform, StyleSheet, useColorScheme, View, ActivityIndicator, Text } from "react-native";
 import React, { useEffect, useRef } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import Colors from "@/constants/colors";
@@ -114,7 +114,12 @@ export default function TabLayout() {
   }
 
   if (!surgeon) {
-    return null;
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: Colors.background }}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+        <Text style={{ marginTop: 16, fontSize: 16, color: Colors.textSecondary }}>Signing out...</Text>
+      </View>
+    );
   }
 
   if (isLiquidGlassAvailable()) {
