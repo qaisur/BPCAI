@@ -1,0 +1,26 @@
+{
+  "cli": {
+    "version": ">= 5.2.0"
+  },
+  "build": {
+    "preview": {
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_DOMAIN": "pediatric-nerve-tracker.fly.dev"
+      }
+    },
+    "production": {
+      "android": {
+        "buildType": "app-bundle"
+      },
+      "env": {
+        "EXPO_PUBLIC_DOMAIN": "pediatric-nerve-tracker.fly.dev"
+      }
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}
