@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useRef, useMemo, useCallback, ReactNode } from "react";
 import { AppState, AppStateStatus } from "react-native";
-import { apiRequest, getApiUrl } from "@/lib/query-client";
+import { apiRequest, getApiUrl, queryClient } from "@/lib/query-client";
 import { fetch } from "expo/fetch";
 
 const INACTIVITY_TIMEOUT_MS = 15 * 60 * 1000;
@@ -48,15 +48,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  const surgeonRef = useRef<Surgeon | null>(null);
+  const isLoggingOut = useRef(false);
+
+  useEffect(() => {
+    surgeonRef.current = surgeon;
+  }, [surgeon]);
+
   const performLogout = useCallback(async () => {
-    try {
-      await apiRequest("POST", "/api/auth/logout");
-    } catch (e) {}
-    setSurgeon(null);
+    if (isLoggingOut.current) return;
+    isLoggingOut.current = true;
     if (inactivityTimer.current) {
       clearTimeout(inactivityTimer.current);
       inactivityTimer.current = null;
     }
+    setSurgeon(null);
+    queryClient.cancelQueries();
+    queryClient.clear();
+    try {
+      const baseUrl = getApiUrl();
+      const url = new URL("/api/auth/logout", baseUrl);
+      await fetch(url.toString(), { method: "POST", credentials: "include" });
+    } catch (e) {}
+    isLoggingOut.current = false;
   }, []);
 
   const resetActivityTimer = useCallback(() => {
@@ -64,12 +78,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (inactivityTimer.current) {
       clearTimeout(inactivityTimer.current);
     }
-    if (surgeon) {
+    if (surgeonRef.current) {
       inactivityTimer.current = setTimeout(() => {
         performLogout();
       }, INACTIVITY_TIMEOUT_MS);
     }
-  }, [surgeon, performLogout]);
+  }, [performLogout]);
 
   useEffect(() => {
     if (surgeon) {
@@ -89,7 +103,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const handleAppStateChange = (nextAppState: AppStateStatus) => {
-      if (nextAppState === "active" && surgeon) {
+      if (nextAppState === "active" && surgeonRef.current) {
         const elapsed = Date.now() - lastActiveTime.current;
         if (elapsed >= INACTIVITY_TIMEOUT_MS) {
           performLogout();
@@ -102,7 +116,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
     const subscription = AppState.addEventListener("change", handleAppStateChange);
     return () => subscription.remove();
-  }, [surgeon, performLogout, resetActivityTimer]);
+  }, [performLogout, resetActivityTimer]);
 
   async function login(username: string, password: string) {
     const res = await apiRequest("POST", "/api/auth/login", { username, password });

@@ -3,7 +3,7 @@ import { Tabs, router } from "expo-router";
 import { NativeTabs, Icon, Label } from "expo-router/unstable-native-tabs";
 import { BlurView } from "expo-blur";
 import { Platform, StyleSheet, useColorScheme, View, ActivityIndicator } from "react-native";
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import Colors from "@/constants/colors";
 import { useAuth } from "@/lib/auth-context";
@@ -91,10 +91,17 @@ function ClassicTabLayout() {
 
 export default function TabLayout() {
   const { surgeon, isLoading } = useAuth();
+  const hasRedirected = useRef(false);
 
   useEffect(() => {
-    if (!isLoading && !surgeon) {
-      router.replace("/");
+    if (!isLoading && !surgeon && !hasRedirected.current) {
+      hasRedirected.current = true;
+      setTimeout(() => {
+        router.replace("/");
+      }, 0);
+    }
+    if (surgeon) {
+      hasRedirected.current = false;
     }
   }, [surgeon, isLoading]);
 

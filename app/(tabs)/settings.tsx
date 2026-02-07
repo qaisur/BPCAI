@@ -11,6 +11,7 @@ import {
   Modal,
   FlatList,
   ActivityIndicator,
+  ScrollView,
 } from "react-native";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -111,7 +112,6 @@ export default function SettingsScreen() {
   async function handleLogout() {
     if (Platform.OS === "web") {
       await logout();
-      router.replace("/");
     } else {
       Alert.alert("Logout", "Are you sure you want to sign out?", [
         { text: "Cancel", style: "cancel" },
@@ -120,7 +120,6 @@ export default function SettingsScreen() {
           style: "destructive",
           onPress: async () => {
             await logout();
-            router.replace("/");
           },
         },
       ]);
@@ -133,10 +132,16 @@ export default function SettingsScreen() {
         styles.container,
         {
           paddingTop: insets.top + webTopInset,
-          paddingBottom: insets.bottom + (Platform.OS === "web" ? 34 : 100),
         },
       ]}
     >
+      <ScrollView
+        contentContainerStyle={{
+          paddingHorizontal: 20,
+          paddingBottom: insets.bottom + (Platform.OS === "web" ? 84 : 100),
+        }}
+        showsVerticalScrollIndicator={false}
+      >
       <Text style={styles.headerTitle}>Settings</Text>
 
       <View style={styles.profileCard}>
@@ -195,6 +200,7 @@ export default function SettingsScreen() {
         <Ionicons name="log-out-outline" size={20} color={Colors.error} />
         <Text style={styles.logoutText}>Sign Out</Text>
       </Pressable>
+      </ScrollView>
 
       <Modal
         visible={adminModalVisible}
@@ -329,7 +335,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.background,
-    paddingHorizontal: 20,
   },
   headerTitle: {
     fontSize: 28,
