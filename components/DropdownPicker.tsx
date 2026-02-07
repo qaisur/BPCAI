@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -25,9 +25,30 @@ export function DropdownPicker({
   placeholder = "Select...",
 }: DropdownPickerProps) {
   const [visible, setVisible] = useState(false);
+  const pendingValue = useRef<string | null>(null);
 
   const selectedLabel =
     options.find((o) => o.value === selectedValue)?.label || "";
+
+  const handleSelect = useCallback((value: string) => {
+    pendingValue.current = value;
+    setVisible(false);
+    setTimeout(() => {
+      if (pendingValue.current !== null) {
+        const val = pendingValue.current;
+        pendingValue.current = null;
+        onSelect(val);
+      }
+    }, 300);
+  }, [onSelect]);
+
+  const handleModalHide = useCallback(() => {
+    if (pendingValue.current !== null) {
+      const val = pendingValue.current;
+      pendingValue.current = null;
+      onSelect(val);
+    }
+  }, [onSelect]);
 
   return (
     <>
@@ -56,15 +77,17 @@ export function DropdownPicker({
         transparent
         animationType="fade"
         onRequestClose={() => setVisible(false)}
+        onDismiss={handleModalHide}
+        statusBarTranslucent
       >
         <Pressable
           style={styles.overlay}
           onPress={() => setVisible(false)}
         >
-          <View style={styles.modalContent}>
+          <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Select</Text>
-              <Pressable onPress={() => setVisible(false)}>
+              <Pressable onPress={() => setVisible(false)} hitSlop={8}>
                 <Ionicons name="close" size={24} color={Colors.text} />
               </Pressable>
             </View>
@@ -77,10 +100,7 @@ export function DropdownPicker({
                     styles.option,
                     item.value === selectedValue && styles.optionActive,
                   ]}
-                  onPress={() => {
-                    onSelect(item.value);
-                    setVisible(false);
-                  }}
+                  onPress={() => handleSelect(item.value)}
                 >
                   <Text
                     style={[
@@ -102,7 +122,7 @@ export function DropdownPicker({
               style={styles.list}
               showsVerticalScrollIndicator={true}
             />
-          </View>
+          </Pressable>
         </Pressable>
       </Modal>
     </>
@@ -133,16 +153,14 @@ const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.4)",
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 20,
+    justifyContent: "flex-end",
   },
   modalContent: {
     backgroundColor: Colors.surface,
-    borderRadius: 16,
-    maxHeight: "70%",
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: "60%",
     width: "100%",
-    maxWidth: 400,
     overflow: "hidden",
   },
   modalHeader: {
