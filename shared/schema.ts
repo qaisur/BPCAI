@@ -221,10 +221,10 @@ export const clinicalExamsRelations = relations(clinicalExams, ({ one }) => ({
   }),
 }));
 
-export const insertSurgeonSchema = createInsertSchema(surgeons).pick({
-  username: true,
-  password: true,
-  fullName: true,
+// FIXED: Changed from .pick() to .omit() to allow isAdmin and isActive fields
+export const insertSurgeonSchema = createInsertSchema(surgeons).omit({
+  id: true,
+  createdAt: true,
 });
 
 export const insertPatientSchema = createInsertSchema(patients).omit({
