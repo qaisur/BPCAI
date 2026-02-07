@@ -114,12 +114,7 @@ export default function TabLayout() {
   }
 
   if (!surgeon) {
-    return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: Colors.background }}>
-        <ActivityIndicator size="large" color={Colors.primary} />
-        <Text style={{ marginTop: 16, fontSize: 16, color: Colors.textSecondary }}>Signing out...</Text>
-      </View>
-    );
+    return null;
   }
 
   if (isLiquidGlassAvailable()) {

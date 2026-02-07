@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useRef, useMemo,
 import { AppState, AppStateStatus } from "react-native";
 import { apiRequest, getApiUrl, queryClient } from "@/lib/query-client";
 import { fetch } from "expo/fetch";
+import { router } from "expo-router";
 
 const INACTIVITY_TIMEOUT_MS = 15 * 60 * 1000;
 
@@ -68,7 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const baseUrl = getApiUrl();
       const url = new URL("/api/auth/logout", baseUrl);
-      await fetch(url.toString(), { method: "POST", credentials: "include" });
+      fetch(url.toString(), { method: "POST", credentials: "include" });
     } catch (e) {}
     isLoggingOut.current = false;
   }, []);
