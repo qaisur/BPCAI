@@ -465,11 +465,22 @@ export default function PatientDetailScreen() {
                 document.body.removeChild(a);
                 URL.revokeObjectURL(blobUrl);
               } else {
+                const { fetch: expoFetch } = require("expo/fetch");
                 const FileSystem = require("expo-file-system/legacy");
                 const fileName = `${patient?.patientId || "patient"}_record.pdf`;
                 const fileUri = `${FileSystem.cacheDirectory}${fileName}`;
-                const downloadResult = await FileSystem.downloadAsync(url, fileUri);
-                if (downloadResult.status !== 200) throw new Error("Failed to download PDF");
+                const res = await expoFetch(url, { credentials: "include" });
+                if (!res.ok) throw new Error("Failed to generate PDF");
+                const arrayBuffer = await res.arrayBuffer();
+                const bytes = new Uint8Array(arrayBuffer);
+                let binary = "";
+                for (let i = 0; i < bytes.length; i++) {
+                  binary += String.fromCharCode(bytes[i]);
+                }
+                const base64Data = btoa(binary);
+                await FileSystem.writeAsStringAsync(fileUri, base64Data, {
+                  encoding: FileSystem.EncodingType.Base64,
+                });
                 const canShare = await Sharing.isAvailableAsync();
                 if (canShare) {
                   await Sharing.shareAsync(fileUri, {
